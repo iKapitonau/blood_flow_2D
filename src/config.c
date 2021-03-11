@@ -1,4 +1,5 @@
 #include "config.h"
+#include "lib/logger.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,6 +26,8 @@ static double *pressure;
 
 void write_config(const char *config_name, const config_data *data)
 {
+	log_write(LOG_DEBUG, "Entering write_config function");
+
 	config_t cfg;
 	config_setting_t *root, *group, *setting, *array, *subgroup, *list;
 
@@ -90,26 +93,28 @@ void write_config(const char *config_name, const config_data *data)
 		config_setting_set_float(setting, data->pressure[i]);
 	}
 
-	if (!config_write_file(&cfg, config_name)) {
-		// TODO: add logger use
-		fprintf(stderr, "Error while writing file.\n");
+	if (config_write_file(&cfg, config_name) == CONFIG_FALSE) {
+		log_write(LOG_ERROR, "Config: Error while writing file.");
 		config_destroy(&cfg);
 		return;
 	}
 
 	config_destroy(&cfg);
+
+	log_write(LOG_DEBUG, "Returning from write_config function");
 }
 
 void read_config(const char *config_name)
 {
+	log_write(LOG_DEBUG, "Entering read_config function");
+
 	config_t cfg;
 	config_setting_t *setting;
 
 	config_init(&cfg);
 
-	if (!config_read_file(&cfg, config_name)) {
-		// TODO: add logger use
-		fprintf(stderr, "%s:%d %s\n", config_error_file(&cfg),
+	if (config_read_file(&cfg, config_name) == CONFIG_FALSE) {
+		log_write(LOG_ERROR, "Config: %s:%d %s", config_error_file(&cfg),
 			config_error_line(&cfg), config_error_text(&cfg));
 		config_destroy(&cfg);
 		return;
@@ -153,12 +158,18 @@ void read_config(const char *config_name)
 	}
 
 	config_destroy(&cfg);
+
+	log_write(LOG_DEBUG, "Returning from read_config function");
 }
 
 void clear_config(void)
 {
+	log_write(LOG_DEBUG, "Entering clear_config function");
+
 	free(velocity_x);
 	free(velocity_z);
 	free(pressure);
 	free(stenoses);
+
+	log_write(LOG_DEBUG, "Returning from clear_config function");
 }
