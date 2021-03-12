@@ -1,5 +1,5 @@
 #include "config.h"
-#include "lib/logger.h"
+#include "logger.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -94,7 +94,7 @@ void write_config(const char *config_name, const config_data *data)
 	}
 
 	if (config_write_file(&cfg, config_name) == CONFIG_FALSE) {
-		log_write(LOG_ERROR, "Config: Error while writing file.");
+		log_write(LOG_ERR, "Config: Error while writing file.");
 		config_destroy(&cfg);
 		return;
 	}
@@ -114,7 +114,7 @@ void read_config(const char *config_name)
 	config_init(&cfg);
 
 	if (config_read_file(&cfg, config_name) == CONFIG_FALSE) {
-		log_write(LOG_ERROR, "Config: %s:%d %s", config_error_file(&cfg),
+		log_write(LOG_ERR, "Config: %s:%d %s", config_error_file(&cfg),
 			config_error_line(&cfg), config_error_text(&cfg));
 		config_destroy(&cfg);
 		return;
@@ -172,4 +172,58 @@ void clear_config(void)
 	free(stenoses);
 
 	log_write(LOG_DEBUG, "Returning from clear_config function");
+}
+
+double get_vessel_size_x(void)
+{
+	return vessel_size_x;
+}
+
+double get_vessel_size_z(void)
+{
+	return vessel_size_z;
+}
+
+double get_blood_density(void)
+{
+	return blood_density;
+}
+
+void get_stenoses_info(size_t *stenoses_n, stenosis_info **stenoses_arr)
+{
+	*stenoses_n = stenoses_number;
+	*stenoses_arr = stenoses;
+}
+
+int get_rows_number(void)
+{
+	return rows_number;
+}
+
+int get_columns_number(void)
+{
+	return columns_number;
+}
+
+double get_delta_t(void)
+{
+	return delta_t;
+}
+
+void get_velocity_x(size_t *nodes_number, double **vel_x)
+{
+	*nodes_number = rows_number * columns_number;
+	*vel_x = velocity_x;
+}
+
+void get_velocity_z(size_t *nodes_number, double **vel_z)
+{
+	*nodes_number = rows_number * columns_number;
+	*vel_z = velocity_z;
+}
+
+void get_pressure(size_t *nodes_number, double **pres)
+{
+	*nodes_number = rows_number * columns_number;
+	*pres = pressure;
 }
