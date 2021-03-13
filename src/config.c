@@ -48,7 +48,7 @@ void write_config(const char *config_name, const config_data *data)
 
 	// Stenoses info
 	list = config_setting_add(group, "stenoses_params", CONFIG_TYPE_LIST);
-	for (int i = 0; i < data->stenoses_number; ++i) {
+	for (size_t i = 0; i < data->stenoses_number; ++i) {
 		subgroup = config_setting_add(list, NULL, CONFIG_TYPE_GROUP);
 		setting = config_setting_add(subgroup, "stenosis_pos_x", CONFIG_TYPE_FLOAT);
 		config_setting_set_float(setting, data->stenoses[i].pos_x);
@@ -76,19 +76,19 @@ void write_config(const char *config_name, const config_data *data)
 	group = config_setting_add(root, "initial", CONFIG_TYPE_GROUP);
 
 	array = config_setting_add(group, "velocity_x", CONFIG_TYPE_ARRAY);
-	for (int i = 0; i < data->nodes_number; ++i) {
+	for (size_t i = 0; i < data->nodes_number; ++i) {
 		setting = config_setting_add(array, NULL, CONFIG_TYPE_FLOAT);
 		config_setting_set_float(setting, data->velocity_x[i]);
 	}
 
 	array = config_setting_add(group, "velocity_z", CONFIG_TYPE_ARRAY);
-	for (int i = 0; i < data->nodes_number; ++i) {
+	for (size_t i = 0; i < data->nodes_number; ++i) {
 		setting = config_setting_add(array, NULL, CONFIG_TYPE_FLOAT);
 		config_setting_set_float(setting, data->velocity_z[i]);
 	}
 
 	array = config_setting_add(group, "pressure", CONFIG_TYPE_ARRAY);
-	for (int i = 0; i < data->nodes_number; ++i) {
+	for (size_t i = 0; i < data->nodes_number; ++i) {
 		setting = config_setting_add(array, NULL, CONFIG_TYPE_FLOAT);
 		config_setting_set_float(setting, data->pressure[i]);
 	}
@@ -129,7 +129,7 @@ void read_config(const char *config_name)
 	setting = config_lookup(&cfg, "vessel_params.stenoses_params");
 	stenoses_number = config_setting_length(setting);
 	stenoses = malloc(stenoses_number * sizeof(stenosis_info));
-	for (int i = 0; i < stenoses_number; ++i) {
+	for (size_t i = 0; i < stenoses_number; ++i) {
 		config_setting_t *cur_elem = config_setting_get_elem(setting, i);
 		config_setting_lookup_float(cur_elem, "stenosis_pos_x", &stenoses[i].pos_x);
 		config_setting_lookup_float(cur_elem, "stenosis_pos_z", &stenoses[i].pos_z);
@@ -151,7 +151,7 @@ void read_config(const char *config_name)
 	config_setting_t *setting_velocity_x = config_lookup(&cfg, "initial.velocity_x");
 	config_setting_t *setting_velocity_z = config_lookup(&cfg, "initial.velocity_z");
 	config_setting_t *setting_pressure = config_lookup(&cfg, "initial.pressure");
-	for (int i = 0; i < nodes_number; ++i) {
+	for (size_t i = 0; i < nodes_number; ++i) {
 		velocity_x[i] = config_setting_get_float_elem(setting_velocity_x, i);
 		velocity_z[i] = config_setting_get_float_elem(setting_velocity_z, i);
 		pressure[i] = config_setting_get_float_elem(setting_pressure, i);
