@@ -15,10 +15,13 @@ static Log_option log_mode;
 int log_open(const char *log_name, Log_option mode)
 {
 	log_mode = mode;
-	log_file = fopen(log_name, "a");
 
-	if (!log_file)
-		return -1;
+	if (log_mode & LOG_FILE) {
+		log_file = fopen(log_name, "a");
+
+		if (!log_file)
+			return -1;
+	}
 
 	return 0;
 }
@@ -61,8 +64,12 @@ void log_write(Log_lvl lvl, const char *fmt, ...)
 
 int log_close(void)
 {
-	int ret = fclose(log_file);
-	if (ret == EOF)
-		return -1;
+	if (log_mode & LOG_FILE) {
+		int ret = fclose(log_file);
+
+		if (ret == EOF)
+			return -1;
+	}
+
 	return 0;
 }
