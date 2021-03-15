@@ -143,7 +143,7 @@ void read_config(const char *config_name)
 	config_lookup_float(&cfg, "grid_params.delta_t", &delta_t);
 
 	// Initial
-	size_t nodes_number = rows_number * columns_number;
+	size_t nodes_number = (rows_number + 1) * (columns_number + 1);
 	velocity_x = malloc(nodes_number * sizeof(double));
 	velocity_z = malloc(nodes_number * sizeof(double));
 	pressure = malloc(nodes_number * sizeof(double));
@@ -212,18 +212,18 @@ double get_delta_t(void)
 
 void get_velocity_x(size_t *nodes_number, double **vel_x)
 {
-	*nodes_number = rows_number * columns_number;
+	*nodes_number = (rows_number + 1) * (columns_number + 1);
 	*vel_x = velocity_x;
 }
 
 void get_velocity_z(size_t *nodes_number, double **vel_z)
 {
-	*nodes_number = rows_number * columns_number;
+	*nodes_number = (rows_number + 1) * (columns_number + 1);
 	*vel_z = velocity_z;
 }
 
 void get_pressure(size_t *nodes_number, double **pres)
 {
-	*nodes_number = rows_number * columns_number;
+	*nodes_number = (rows_number + 1) * (columns_number + 1);
 	*pres = pressure;
 }
