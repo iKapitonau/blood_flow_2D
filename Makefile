@@ -9,6 +9,7 @@ deps = $(srcs:.c=.dep)
 .PHONY: all clean
 
 all: $(objs)
+	$(CC) $(objs) $(LDFLAGS)
 
 ifneq ($(MAKECMDGOALS), clean)
 -include $(deps)
