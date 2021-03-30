@@ -1,13 +1,20 @@
+/**
+ * @file logger.c
+ * @author Ilya Kapitonau <ilya.th.kaptionov@gmail.com>
+ * @brief Implementation of logging functions.
+ */
+
 #include "logger.h"
 
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
-#define BUF_SIZE		256
-#define TIMESTAMP_SIZE	25
+#define BUF_SIZE		256		///< Buffer size for log message.
+#define TIMESTAMP_SIZE	25		///< Buffer size for timestamp.
 
 static FILE *log_file;
 static Log_option log_mode;
@@ -15,17 +22,24 @@ static Log_option log_mode;
 int log_open(const char *log_name, Log_option mode)
 {
 	log_mode = mode;
-	log_file = fopen(log_name, "a");
 
-	if (!log_file)
-		return -1;
+	if (log_mode & LOG_FILE) {
+		log_file = fopen(log_name, "a");
 
-	return 0;
+		if (!log_file)
+			perror("fopen");
+			return EXIT_FAILURE;
+	}
+
+	return EXIT_SUCCESS;
 }
 
 void log_write(Log_lvl lvl, const char *fmt, ...)
 {
-	time_t rawtime = time(0);
+	/**
+	 * Get time of log writing.
+	 */
+	time_t rawtime = time(NULL);
 
 	if (rawtime == (time_t)-1) {
 		perror("time");
@@ -39,7 +53,7 @@ void log_write(Log_lvl lvl, const char *fmt, ...)
 		return;
 	}
 
-	char strtime[TIMESTAMP_SIZE];
+	char strtime[TIMESTAMP_SIZE];	///< String representation of timestamp.
 
 	size_t time_len = strftime(strtime, TIMESTAMP_SIZE, "%d-%m-%y %r", timestamp);
 
@@ -61,8 +75,12 @@ void log_write(Log_lvl lvl, const char *fmt, ...)
 
 int log_close(void)
 {
-	int ret = fclose(log_file);
-	if (ret == EOF)
-		return -1;
-	return 0;
+	if (log_mode & LOG_FILE) {
+		int ret = fclose(log_file);
+
+		if (ret == EOF)
+			return EXIT_FAILURE;
+	}
+
+	return EXIT_SUCCESS;
 }
