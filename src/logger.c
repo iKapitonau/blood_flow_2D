@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -26,10 +27,11 @@ int log_open(const char *log_name, Log_option mode)
 		log_file = fopen(log_name, "a");
 
 		if (!log_file)
-			return -1;
+			perror("fopen");
+			return EXIT_FAILURE;
 	}
 
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 void log_write(Log_lvl lvl, const char *fmt, ...)
@@ -37,7 +39,7 @@ void log_write(Log_lvl lvl, const char *fmt, ...)
 	/**
 	 * Get time of log writing.
 	 */
-	time_t rawtime = time(0);
+	time_t rawtime = time(NULL);
 
 	if (rawtime == (time_t)-1) {
 		perror("time");
@@ -77,8 +79,8 @@ int log_close(void)
 		int ret = fclose(log_file);
 
 		if (ret == EOF)
-			return -1;
+			return EXIT_FAILURE;
 	}
 
-	return 0;
+	return EXIT_SUCCESS;
 }
