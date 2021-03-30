@@ -1,3 +1,9 @@
+/**
+ * @file logger.c
+ * @author Ilya Kapitonau <ilya.th.kaptionov@gmail.com>
+ * @brief Implementation of logging functions.
+ */
+
 #include "logger.h"
 
 #include <errno.h>
@@ -6,8 +12,8 @@
 #include <string.h>
 #include <time.h>
 
-#define BUF_SIZE		256
-#define TIMESTAMP_SIZE	25
+#define BUF_SIZE		256		///< Buffer size for log message.
+#define TIMESTAMP_SIZE	25		///< Buffer size for timestamp.
 
 static FILE *log_file;
 static Log_option log_mode;
@@ -28,6 +34,9 @@ int log_open(const char *log_name, Log_option mode)
 
 void log_write(Log_lvl lvl, const char *fmt, ...)
 {
+	/**
+	 * Get time of log writing.
+	 */
 	time_t rawtime = time(0);
 
 	if (rawtime == (time_t)-1) {
@@ -42,7 +51,7 @@ void log_write(Log_lvl lvl, const char *fmt, ...)
 		return;
 	}
 
-	char strtime[TIMESTAMP_SIZE];
+	char strtime[TIMESTAMP_SIZE];	///< String representation of timestamp.
 
 	size_t time_len = strftime(strtime, TIMESTAMP_SIZE, "%d-%m-%y %r", timestamp);
 
