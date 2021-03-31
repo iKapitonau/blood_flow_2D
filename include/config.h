@@ -4,10 +4,10 @@
 #include <stddef.h>
 
 typedef struct stenosis_info_t {
-	double pos_x;
-	double pos_z;
-	double size_x;
-	double size_z;
+	double pos_x1;
+	double pos_z1;
+	double pos_x2;
+	double pos_z2;
 } stenosis_info;
 
 typedef struct config_data_t {
@@ -32,8 +32,8 @@ typedef struct config_data_t {
 	double *pressure;
 } config_data;
 
-void write_config(const char *config_name, const config_data *data);
-void read_config(const char *config_name);
+int write_config(const char *config_name, const config_data *data);
+int read_config(const char *config_name);
 void clear_config(void);
 
 // Vessel info
