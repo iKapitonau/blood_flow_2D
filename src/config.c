@@ -1,3 +1,9 @@
+/**
+ * @file config.c
+ * @author Ilya Kapitonau <ilya.th.kapitonov@gmail.com>
+ * @brief Implementation of config functions.
+ */
+
 #include "config.h"
 #include "logger.h"
 
@@ -227,7 +233,6 @@ void clear_config(void)
 	free(data_.stenoses);
 }
 
-// Vessel info
 double get_vessel_size_x(void)
 {
 	return data_.vessel_size_x;
@@ -243,7 +248,6 @@ double get_blood_density(void)
 	return data_.blood_density;
 }
 
-// Stenoses info
 void get_stenoses_info(size_t *stenoses_number, stenosis_info **stenoses)
 {
 	*stenoses_number = data_.stenoses_number;
@@ -251,7 +255,6 @@ void get_stenoses_info(size_t *stenoses_number, stenosis_info **stenoses)
 	memcpy(*stenoses, data_.stenoses, *stenoses_number * sizeof(stenosis_info));
 }
 
-// Grid params
 int get_rows_number(void)
 {
 	return data_.rows_number;
@@ -267,7 +270,6 @@ double get_delta_t(void)
 	return data_.delta_t;
 }
 
-// Initial
 void get_velocity_x(size_t *nodes_number, double **velocity_x)
 {
 	*nodes_number = data_.nodes_number;
