@@ -1,3 +1,9 @@
+/**
+ * @file blood_consts.c
+ * @author Ilya Kapitonau <ilya.th.kapitonov@gmail.com>
+ * @brief Values of Carreau fluid model constants for blood.
+ */
+
 #include "blood_consts.h"
 
 const double MU_0 = 0.056;
