@@ -26,9 +26,10 @@ int log_open(const char *log_name, Log_option mode)
 	if (log_mode & LOG_FILE) {
 		log_file = fopen(log_name, "a");
 
-		if (!log_file)
+		if (!log_file) {
 			perror("fopen");
 			return EXIT_FAILURE;
+		}
 	}
 
 	return EXIT_SUCCESS;
