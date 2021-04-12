@@ -10,7 +10,8 @@
 
 static const grid_offset ALL_OFFSETS[GRID_OFFSET_NUM] = {
 	GRID_OFFSET_U,
-	GRID_OFFSET_W, GRID_OFFSET_P,
+	GRID_OFFSET_W,
+	GRID_OFFSET_P,
 	GRID_OFFSET_MU,
 	GRID_OFFSET_DX,
 	GRID_OFFSET_DZ
@@ -88,11 +89,12 @@ grid_node *grid_generate(double sigma_, size_t *n, size_t *m)
 		log_write(LOG_INFO, "First time in function. Allocating dx, dz...");
 		L = get_vessel_size_x();
 		H = get_vessel_size_z();
-		N = get_rows_number();
-		M = get_columns_number();
 
-		dz = malloc(N * sizeof(double));
-		dx = malloc(M * sizeof(double));
+		M = get_rows_number();
+		N = get_columns_number();
+
+		dz = malloc(M * sizeof(double));
+		dx = malloc(N * sizeof(double));
 
 		first_time_in_function = false;
 		log_write(LOG_INFO, "Allocated successfully!");
@@ -103,9 +105,9 @@ grid_node *grid_generate(double sigma_, size_t *n, size_t *m)
 		sigma = sigma_;
 
 		log_write(LOG_INFO, "Generating x dimension...");
-		grid_generate_dimension(dx, M, L, sigma);
+		grid_generate_dimension(dx, N, L, sigma);
 		log_write(LOG_INFO, "Generating z dimension...");
-		grid_generate_dimension(dz, N, H, sigma);
+		grid_generate_dimension(dz, M, H, sigma);
 		log_write(LOG_INFO, "Generated successfully!");
 	}
 
@@ -151,8 +153,8 @@ void grid_fill_from_config(grid_node *grid)
 	
 	for (size_t i = 0; i < N; ++i) {
 		for (size_t j = 0; j < M; ++j) {
-			grid[i * M + j].dx = dx[j];
-			grid[i * M + j].dz = dz[i];
+			grid[i * M + j].dx = dx[i];
+			grid[i * M + j].dz = dz[j];
 		}
 	}
 	log_write(LOG_INFO, "Initialized successfully!");
