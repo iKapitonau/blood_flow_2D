@@ -1,6 +1,8 @@
 #ifndef GRID_H_
 #define GRID_H_
 
+#include <stddef.h>
+
 #define EPS	1e-6
 
 typedef enum print_option_t {
@@ -28,6 +30,7 @@ typedef enum grid_offset_t {
 } grid_offset;
 
 grid_node *grid_generate(double sigma, size_t *n, size_t *m);
+void grid_copy(grid_node *src, grid_node **dst);
 void grid_destroy(grid_node *grid);
 
 void grid_fill_from_config(grid_node *grid);

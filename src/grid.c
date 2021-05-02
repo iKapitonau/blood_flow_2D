@@ -124,6 +124,17 @@ grid_node *grid_generate(double sigma_, size_t *n, size_t *m)
 	return grid;
 }
 
+void grid_copy(grid_node *src, grid_node **dst)
+{
+	grid_destroy(*dst);
+
+	size_t n, m;
+	*dst = grid_generate(sigma, &n, &m);
+	for (size_t i = 0; i < n; ++i)
+		for (size_t j = 0; j < m; ++j)
+			(*dst)[i * m + j] = src[i * m + j];
+}
+
 void grid_destroy(grid_node *grid)
 {
 	log_write(LOG_DEBUG, "Entering grid_destroy function");
