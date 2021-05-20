@@ -76,8 +76,10 @@ static void calculate_mu(grid_node *grid, size_t n, size_t m)
 					(e->w - w->w + ne->w - nw->w) / (4 * ctr->dx)) / 2;
 			}
 
-			ctr->mu = MU_INF + (MU_INF - MU_0) *
-				pow(1 + pow(B * shear_rate, 2), (N - 1) / 2);
+			//ctr->mu = MU_INF + (MU_INF - MU_0) *
+				//pow(1 + pow(B * shear_rate, 2), (N - 1) / 2);
+			// DEBUG
+			ctr->mu = 3.5 * 1e-3;
 		}
 	}
 }
