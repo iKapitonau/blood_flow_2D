@@ -43,7 +43,7 @@ static void normalize(double *a, size_t n)
 	log_write(LOG_DEBUG, "Exiting normalize function");
 }
 
-static void grid_generate_dimension(double *a, size_t n, size_t size, double sigma)
+static void grid_generate_dimension(double *a, size_t n, double size, double sigma)
 {
 	log_write(LOG_DEBUG, "Entering grid_generate_dimension function");
 	double h = 10.0 / n;
@@ -93,8 +93,8 @@ grid_node *grid_generate(double sigma_, size_t *n, size_t *m)
 		M = get_rows_number();
 		N = get_columns_number();
 
-		dz = malloc(M * sizeof(double));
-		dx = malloc(N * sizeof(double));
+		dz = calloc(M + 1, sizeof(double));
+		dx = calloc(N + 1, sizeof(double));
 
 		first_time_in_function = false;
 		log_write(LOG_INFO, "Allocated successfully!");
@@ -112,9 +112,15 @@ grid_node *grid_generate(double sigma_, size_t *n, size_t *m)
 	}
 
 	log_write(LOG_INFO, "Allocating grid...");
-	grid_node *grid = malloc((N + 1) * (M + 1) * sizeof(grid_node));
+	grid_node *grid = calloc((N + 1) * (M + 1), sizeof(grid_node));
 	*n = N + 1;
 	*m = M + 1;
+	for (size_t i = 0; i < *n; ++i) {
+		for (size_t j = 0; j < *m; ++j) {
+			grid[i * *m + j].dx = dx[i];
+			grid[i * *m + j].dz = dz[j];
+		}
+	}
 	log_write(LOG_INFO, "Allocated successfully!");
 
 	//print_gnuplot(z, N, x, M);
@@ -138,7 +144,8 @@ void grid_copy(grid_node *src, grid_node **dst)
 void grid_destroy(grid_node *grid)
 {
 	log_write(LOG_DEBUG, "Entering grid_destroy function");
-	free(grid);
+	if (grid)
+		free(grid);
 	log_write(LOG_DEBUG, "Exiting grid_destroy function");
 }
 
@@ -155,19 +162,19 @@ void grid_fill_from_config(grid_node *grid)
 	get_velocity_z(&nodes_number, &w);	
 	get_pressure(&nodes_number, &p);
 
+	fprintf(stderr, "%zu\n", nodes_number);
+
 	for (size_t i = 0; i < nodes_number; ++i) {
 		grid[i].u = u[i];
 		grid[i].w = w[i];
 		grid[i].p = p[i];
 		grid[i].mu = 0;
 	}
+
+	free(u);
+	free(w);
+	free(p);
 	
-	for (size_t i = 0; i < N; ++i) {
-		for (size_t j = 0; j < M; ++j) {
-			grid[i * M + j].dx = dx[i];
-			grid[i * M + j].dz = dz[j];
-		}
-	}
 	log_write(LOG_INFO, "Initialized successfully!");
 	log_write(LOG_DEBUG, "Exiting grid_fill_from_config function");
 }
@@ -260,4 +267,10 @@ void grid_print_all(grid_node *grid, size_t n, size_t m, print_option mode)
 	}
 
 	log_write(LOG_DEBUG, "Exiting grid_print_all function");
+}
+
+void grid_clear(void)
+{
+	free(dx);
+	free(dz);
 }

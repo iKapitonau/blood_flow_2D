@@ -39,4 +39,6 @@ void grid_fill(grid_node *grid, double *a, grid_offset offset);
 void grid_print_all(grid_node *grid, size_t n, size_t m, print_option mode);
 void grid_print_elem(grid_node *grid, size_t n, size_t m, print_option mode, grid_offset offset);
 
+void grid_clear(void);
+
 #endif	// GRID_H_
