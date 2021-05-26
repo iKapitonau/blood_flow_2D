@@ -138,7 +138,7 @@ int read_config(const char *config_name)
 		if (!data_.stenoses_number)
 			log_write(LOG_WARNING, "Config: group 'vessel_params.stenoses_params' is empty.");
 		else 
-			data_.stenoses = malloc(data_.stenoses_number * sizeof(stenosis_info));
+			data_.stenoses = calloc(data_.stenoses_number, sizeof(stenosis_info));
 
 		for (size_t i = 0; i < data_.stenoses_number; ++i) {
 			config_setting_t *cur_elem = config_setting_get_elem(setting, i);
@@ -186,9 +186,9 @@ int read_config(const char *config_name)
 		data_.nodes_number = 0;
 		log_write(LOG_WARNING, "Config: rows_number or columns_number is zero.");
 	} else {
-		data_.velocity_x = malloc(data_.nodes_number * sizeof(double));
-		data_.velocity_z = malloc(data_.nodes_number * sizeof(double));
-		data_.pressure = malloc(data_.nodes_number * sizeof(double));
+		data_.velocity_x = calloc(data_.nodes_number, sizeof(double));
+		data_.velocity_z = calloc(data_.nodes_number, sizeof(double));
+		data_.pressure = calloc(data_.nodes_number, sizeof(double));
 	}
 
 	config_setting_t *setting_velocity_x = config_lookup(&cfg, "initial.velocity_x");
@@ -251,7 +251,7 @@ double get_blood_density(void)
 void get_stenoses_info(size_t *stenoses_number, stenosis_info **stenoses)
 {
 	*stenoses_number = data_.stenoses_number;
-	*stenoses = malloc(*stenoses_number * sizeof(stenosis_info));
+	*stenoses = calloc(*stenoses_number, sizeof(stenosis_info));
 	memcpy(*stenoses, data_.stenoses, *stenoses_number * sizeof(stenosis_info));
 }
 
@@ -273,20 +273,20 @@ double get_delta_t(void)
 void get_velocity_x(size_t *nodes_number, double **velocity_x)
 {
 	*nodes_number = data_.nodes_number;
-	*velocity_x = malloc(*nodes_number * sizeof(double));
+	*velocity_x = calloc(*nodes_number, sizeof(double));
 	memcpy(*velocity_x, data_.velocity_x, *nodes_number * sizeof(double));
 }
 
 void get_velocity_z(size_t *nodes_number, double **velocity_z)
 {
 	*nodes_number = data_.nodes_number;
-	*velocity_z = malloc(*nodes_number * sizeof(double));
+	*velocity_z = calloc(*nodes_number, sizeof(double));
 	memcpy(*velocity_z, data_.velocity_z, *nodes_number * sizeof(double));
 }
 
 void get_pressure(size_t *nodes_number, double **pressure)
 {
 	*nodes_number = data_.nodes_number;
-	*pressure = malloc(*nodes_number * sizeof(double));
+	*pressure = calloc(*nodes_number, sizeof(double));
 	memcpy(*pressure, data_.pressure, *nodes_number * sizeof(double));
 }
