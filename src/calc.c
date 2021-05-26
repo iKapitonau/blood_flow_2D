@@ -51,35 +51,91 @@ void prs_half_2(prs_info *pi)
 		tma(&(pi->ti_half_2[i]));
 }
 
+static inline double w_0(double t)
+{
+	double f = 0;
+
+	if (t < 0.2598 || t >= 0.7523)
+		f = 0.189;
+	else if (t >= 0.2598 && t < 0.458) 
+		f = -59.5 * pow(t - 0.37, 2) + 0.912;
+	else if (t >= 0.458 && t < 0.5901) 
+		f = -27.7 * pow(t - 0.5, 2) + 0.5;
+	else if (t >= 0.5901 && t < 0.7523)
+		f = -23.7 * pow(t - 0.66, 2) + 0.391;
+	return f;
+	
+/*
+	if ((t > 0.213793 && t < 0.5) || t > 0.713793)
+		return 0.1;
+	else if (t <= 0.213793)
+		return (-35 * pow(t - 0.1069, 2) + 0.5) * (x * (2 - x / R) / R);
+	else
+		return (-35 * pow(t - 0.5 - 0.1069, 2) + 0.5) * (x * (2 - x / R) / R);
+		*/
+}
+
+static inline double w_0_derivative_t(double t)
+{
+	double f = 0;
+
+	if (t < 0.2598 || t >= 0.7523)
+		f = 0;
+	else if (t >= 0.2598 && t < 0.458) 
+		f = -59.5 * 2 * (t - 0.37);
+	else if (t >= 0.458 && t < 0.5901) 
+		f = -27.7 * 2 * (t - 0.5);
+	else if (t >= 0.5901 && t < 0.7523)
+		f = -23.7 * 2 * (t - 0.66);
+	return f; 
+	
+/*
+	if ((t > 0.213793 && t < 0.5) || t > 0.713793)
+		return 0.1;
+	else if (t <= 0.213793)
+		return (-35 * pow(t - 0.1069, 2) + 0.5) * (x * (2 - x / R) / R);
+	else
+		return (-35 * pow(t - 0.5 - 0.1069, 2) + 0.5) * (x * (2 - x / R) / R);
+		*/
+}
+
 static void calculate_mu(grid_node *grid, size_t n, size_t m)
 {
 	for (size_t i = 0; i < n - 1; ++i) {
 		for (size_t k = 0; k < m - 1; ++k) {
-			double shear_rate;
-			grid_node *ctr = &grid[i * m + k];
-			grid_node *e = &grid[(i + 1) * m + k];
-			grid_node *n = &grid[i * m + k + 1];
-			grid_node *s = (k == 0 ? &grid[i * m + k] : &grid[i * m + k - 1]);
-			grid_node *ne = &grid[(i + 1) * m + k + 1];
-			grid_node *se = (k == 0 ? &grid[(i + 1) * m + k] : &grid[(i + 1) * m + k - 1]);
+			double u_n = (k == m - 2 ? 0 : grid[i * m + k + 1].u);
+			double u_s = (k == 0 ? grid[i * m + k].u : grid[i * m + k - 1].u);
+			double u_ne = (k == m - 2 ? 0 : grid[(i + 1) * m + k + 1].u);
+			double u_se = (k == 0 ? grid[(i + 1) * m + k].u : grid[(i + 1) * m + k - 1].u);
+			double w_e = (i == n - 2 ? -grid[i * m + k].w : grid[(i + 1) * m + k].w);
+			double w_w = (i == 0 ? -grid[i * m + k].w : grid[(i - 1) * m + k].w);
+			double w_ne = (i == n - 2 ? -grid[i * m + k + 1].w : grid[(i + 1) * m + k + 1].w);
+			double w_nw = (i == 0 ? -grid[i * m + k + 1].w : grid[(i - 1) * m + k + 1].w);
+			double dz = grid[i * m + k].dz;
+			double dx = grid[i * m + k].dx;
 
-			if (i == 0) {
-				// w->w == -ctr->w and nw->w == -n->w
-				shear_rate = 
-					((n->u - s->u + ne->u - se->u) / (4 * ctr->dz) +
-					(ctr->w + e->w + n->w + ne->w) / (4 * ctr->dx)) / 2;
-			} else {
-				grid_node *w = &grid[(i - 1) * m + k];
-				grid_node *nw = &grid[(i - 1) * m + k + 1];
-				shear_rate = 
-					((n->u - s->u + ne->u - se->u) / (4 * ctr->dz) + 
-					(e->w - w->w + ne->w - nw->w) / (4 * ctr->dx)) / 2;
-			}
-
-			//ctr->mu = MU_INF + (MU_INF - MU_0) *
-				//pow(1 + pow(B * shear_rate, 2), (N - 1) / 2);
-			// DEBUG
-			ctr->mu = 3.5 * 1e-3;
+			double shear_rate = 
+					((u_n - u_s + u_ne - u_se) / dz + 
+					(w_e - w_w + w_ne - w_nw) / dx) / 8;
+		// CARREAU 
+			//grid[i * m + k].mu = MU_INF + (MU_0 - MU_INF);
+			if (fabs(shear_rate) <= EPS)
+				grid[i * m + k].mu = MU_INF + (MU_0 - MU_INF);
+			else
+				grid[i * m + k].mu = MU_INF + (MU_0 - MU_INF) *
+					pow(1 + pow(B * shear_rate, 2), (N - 1) / 2);
+		//	CARREAU-YASUDA
+		//	if (shear_rate <= EPS)
+		//		grid[i * m + k].mu = MU_INF + (MU_0 - MU_INF);
+		//	else
+		//		grid[i * m + k].mu = MU_INF + (MU_0 - MU_INF) *
+		//			pow(1 + pow(B * shear_rate, A), (N - 1) / A);
+		//	CROSS
+		//	if (shear_rate <= EPS) 
+			//	grid[i * m + k].mu = MU_INF + (MU_0 - MU_INF);
+		//	else
+			//	grid[i * m + k].mu = MU_INF + (MU_0 - MU_INF) /
+				//	pow(1 + pow(B * shear_rate, M), A);
 		}
 	}
 }
@@ -154,8 +210,12 @@ static inline void calculate_velocity_x_d_half_1(grid_node *grid, grid_node *gri
 			double d4 = (grid[(i - 1) * m + k + 1].w + grid[i * m + k + 1].w) / 2;
 			double c3 = (-d3 >= EPS ? 0 : 1);
 			double c4 = (d4 >= EPS ? 0 : 1);
-			double mu = grid[i * m + k].mu;
-			double mu_n = grid[i * m + k + 1].mu;
+			double mu_avg_n = (k == m - 2 ? (grid[i * m + k].mu + grid[(i - 1) * m + k].mu) / 2 :
+					(grid[i * m + k].mu + grid[(i - 1) * m + k].mu +
+					grid[i * m + k + 1].mu + grid[(i - 1) * m + k + 1].mu) / 4);
+			double mu_avg = (k == 0 ? (grid[i * m + k].mu + grid[(i - 1) * m + k].mu) / 2 :
+					(grid[i * m + k].mu + grid[(i - 1) * m + k].mu +
+					grid[i * m + k - 1].mu + grid[(i - 1) * m + k - 1].mu) / 4);
 			double u = grid[i * m + k].u;
 			double u_prev = grid_prev[i * m + k].u;
 			double u_n = grid[i * m + k + 1].u;
@@ -166,10 +226,9 @@ static inline void calculate_velocity_x_d_half_1(grid_node *grid, grid_node *gri
 			double p_w = grid[(i - 1) * m + k].p;
 			double p = grid[i * m + k].p;
 
-			ti[k].d[i] = u_prev / delta_t + (2 / (density * dz)) *
-				(mu_n * (u_n - u) / dz_half_plus) -
-				(p - p_w) / (dx_half * density) + (2 / (density * dz)) *
-				(mu_n * (w_n - w_nw) / dx_half - mu * (w - w_w) / dx_half);
+			ti[k].d[i] = u_prev / delta_t + (mu_avg_n * (u_n - u) / (density * dz * dz_half_plus)) -
+				(p - p_w) / (dx_half * density) + (1 / (density * dz * dx_half)) *
+				(mu_avg_n * (w_n - w_nw) - mu_avg * (w - w_w));
 
 			if (k == 0) {
 				ti[k].d[i] -= (c4 * d4 * u_n + ((1 - c4) * d4 - d3) * u) / dz;
@@ -177,7 +236,7 @@ static inline void calculate_velocity_x_d_half_1(grid_node *grid, grid_node *gri
 				double dz_half_minus = (grid[i * m + k].dz + grid[i * m + k - 1].dz) / 2;
 				double u_s = grid[i * m + k - 1].u;
 
-				ti[k].d[i] -= (2 / (density * dz)) * (mu * (u - u_s) / dz_half_minus);
+				ti[k].d[i] -= (1 / (density * dz * dz_half_minus)) * (mu_avg * (u - u_s));
 				if (k == m - 2)
 					ti[k].d[i] -= (c3 * d3 * u_s + (1 - c3) * d3 * u) / dz;
 				else
@@ -196,9 +255,10 @@ static inline void calculate_velocity_x_a_half_2(grid_node *grid, tma_info *ti, 
 			double dz = grid[i * m + k].dz;
 			double d3 = (grid[i * m + k].w + grid[(i - 1) * m + k].w) / 2;
 			double c3 = (-d3 >= EPS ? 0 : 1);
-			double mu = grid[i * m + k].mu;
+			double mu_avg = (grid[i * m + k].mu + grid[(i - 1) * m + k].mu +
+					grid[i * m + k - 1].mu + grid[(i - 1) * m + k - 1].mu) / 4;
 
-			ti[i].a[k] = -2 * mu / (density * dz * dz_half) - c3 * d3 / dz;
+			ti[i].a[k] = -1 * mu_avg / (density * dz * dz_half) - c3 * d3 / dz;
 		}
 	}
 }
@@ -216,11 +276,13 @@ static inline void calculate_velocity_x_b_half_2(grid_node *grid, tma_info *ti, 
 			double d4 = (grid[(i - 1) * m + k + 1].w + grid[i * m + k + 1].w) / 2;
 			double c3 = (-d3 >= EPS ? 0 : 1);
 			double c4 = (d4 >= EPS ? 0 : 1);
-			double mu_n = grid[i * m + k + 1].mu;
-			double mu = grid[i * m + k].mu;
+			double mu_avg_n = (grid[i * m + k].mu + grid[(i - 1) * m + k].mu +
+					grid[i * m + k + 1].mu + grid[(i - 1) * m + k + 1].mu) / 4;
+			double mu_avg = (grid[i * m + k].mu + grid[(i - 1) * m + k].mu +
+					grid[i * m + k - 1].mu + grid[(i - 1) * m + k - 1].mu) / 4;
 
-			ti[i].b[k] = 1 / delta_t + 2 * mu_n / (density * dz * dz_half_plus) +
-				2 * mu / (density * dz * dz_half_minus) +
+			ti[i].b[k] = 1 / delta_t + 1 * mu_avg_n / (density * dz * dz_half_plus) +
+				1 * mu_avg / (density * dz * dz_half_minus) +
 				((1 - c4) * d4 - (1 - c3) * d3) / dz;
 		}
 	}
@@ -235,9 +297,10 @@ static inline void calculate_velocity_x_c_half_2(grid_node *grid, tma_info *ti, 
 			double c4 = (d4 >= EPS ? 0 : 1);
 			double dz_half_plus = (grid[i * m + k].dz + grid[i * m + k + 1].dz) / 2;
 			double dz = grid[i * m + k].dz;
-			double mu_n = grid[i * m + k + 1].mu;
+			double mu_avg_n = (grid[i * m + k].mu + grid[(i - 1) * m + k].mu +
+					grid[i * m + k + 1].mu + grid[(i - 1) * m + k + 1].mu) / 4;
 
-			ti[i].c[k] = -2 * mu_n / (density * dz * dz_half_plus) + c4 * d4 / dz;
+			ti[i].c[k] = -1 * mu_avg_n / (density * dz * dz_half_plus) + c4 * d4 / dz;
 		}
 	}
 }
@@ -262,7 +325,10 @@ static inline void calculate_velocity_x_d_half_2(grid_node *grid, grid_node *gri
 			double u_prev = grid_prev[i * m + k].u;
 			double mu = grid[i * m + k].mu;
 			double mu_w = grid[(i - 1) * m + k].mu;
-			double mu_n = grid[i * m + k + 1].mu;
+			double mu_avg_n = (grid[i * m + k].mu + grid[(i - 1) * m + k].mu +
+					grid[i * m + k + 1].mu + grid[(i - 1) * m + k + 1].mu) / 4;
+			double mu_avg = (grid[i * m + k].mu + grid[(i - 1) * m + k].mu +
+					grid[i * m + k - 1].mu + grid[(i - 1) * m + k - 1].mu) / 4;
 			double p = grid[i * m + k].p;
 			double p_w = grid[(i - 1) * m + k].p;
 			double w = grid[i * m + k].w;
@@ -273,8 +339,8 @@ static inline void calculate_velocity_x_d_half_2(grid_node *grid, grid_node *gri
 			ti_half_2[i].d[k] = u_prev / delta_t + (2 / (density * dx_half)) *
 				(mu * (u_e - u) / dx - mu_w * (u - u_w) / dx_w) -
 				(c2 * d2 * u_e + ((1 - c2) * d2 - (1 - c1) * d1) * u - c1 * d1 * u_w) /
-				dx_half + (p - p_w) / (dx_half * density) +	(2 / (density * dz)) *
-				(mu_n * (w_n - w_nw) / dx_half - mu * (w - w_w) / dx_half);
+				dx_half - (p - p_w) / (dx_half * density) +	(1 / (density * dz)) *
+				(mu_avg_n * (w_n - w_nw) / dx_half - mu_avg * (w - w_w) / dx_half);
 		}
 	}
 }
@@ -285,14 +351,15 @@ static inline double calculate_velocity_x_xi_1_half_2(grid_node *grid, size_t i,
 	double d3 = (grid[i * m].w + grid[(i - 1) * m].w) / 2;
 	double d4 = (grid[(i - 1) * m + 1].w + grid[i * m + 1].w) / 2;
 	double c4 = (d4 >= EPS ? 0 : 1);
-	double mu_n = grid[i * m + 1].mu;
+	double mu_avg_n = (grid[i * m].mu + grid[(i - 1) * m].mu +
+			grid[i * m + 1].mu + grid[(i - 1) * m + 1].mu) / 4;
 	double dz = grid[i * m].dz;
 	double dz_half_plus = (grid[i * m].dz + grid[i * m + 1].dz) / 2;
 	double delta_t = get_delta_t();
 	double density = get_blood_density();
 
-	return (2 * mu_n / (density * dz * dz_half_plus) - c4 * d4 / dz) /
-			(1 / delta_t + 2 * mu_n / (density * dz * dz_half_plus) +
+	return (1 * mu_avg_n / (density * dz * dz_half_plus) - c4 * d4 / dz) /
+			(1 / delta_t + 1 * mu_avg_n / (density * dz * dz_half_plus) +
 			 ((1 - c4) * d4 - d3) / dz);
 }
 
@@ -303,13 +370,15 @@ static inline double calculate_velocity_x_xi_2_half_2(grid_node *grid, size_t i,
 	double c3 = (-d3 >= EPS ? 0 : 1);
 	double dz = grid[i * m + m - 2].dz;
 	double dz_half_minus = (grid[i * m + m - 2].dz + grid[i * m + m - 3].dz) / 2;
-	double mu = grid[i * m + m - 2].mu;
+	double mu_avg_n = (grid[i * m + m - 2].mu + grid[(i - 1) * m + m - 2].mu) / 2;
+	double mu_avg = (grid[i * m + m - 2].mu + grid[(i - 1) * m + m - 2].mu +
+			grid[i * m + m - 3].mu + grid[(i - 1) * m + m - 3].mu) / 4;
 	double density = get_blood_density();
 	double delta_t = get_delta_t();
 
-	return (-c3 * d3 / dz + 2 * mu / (density * dz_half_minus * dz)) / 
-		(1 / delta_t + 2 * mu / (density * dz * dz) +
-		 2 * mu / (density * dz * dz_half_minus) + ((1 - c3) * d3) / dz);
+	return (-c3 * d3 / dz + 1 * mu_avg / (density * dz_half_minus * dz)) / 
+		(1 / delta_t + 1 * mu_avg_n / (density * dz * dz) +
+		 1 * mu_avg / (density * dz * dz_half_minus) + ((1 - c3) * d3) / dz);
 }
 
 static inline double calculate_velocity_x_mu_1_half_2(grid_node *grid, grid_node *grid_prev, tma_info *ti_half_1, size_t i, size_t m)
@@ -332,7 +401,9 @@ static inline double calculate_velocity_x_mu_1_half_2(grid_node *grid, grid_node
 	double u_w = ti_half_1[0].y[i - 1];
 	double u = ti_half_1[0].y[i];
 	double mu = grid[i * m].mu;
-	double mu_n = grid[i * m + 1].mu;
+	double mu_avg = (grid[i * m].mu + grid[(i - 1) * m].mu) / 2;
+	double mu_avg_n = (grid[i * m].mu + grid[(i - 1) * m].mu +
+			grid[i * m + 1].mu + grid[(i - 1) * m + 1].mu) / 4;
 	double mu_w = grid[(i - 1) * m].mu;
 	double p = grid[i * m].p;
 	double p_w = grid[(i - 1) * m].p;
@@ -346,9 +417,9 @@ static inline double calculate_velocity_x_mu_1_half_2(grid_node *grid, grid_node
 	return (u_prev / delta_t + (2 / (density * dx_half)) *
 			(mu * (u_e - u) / dx - mu_w * (u - u_w) / dx_w) -
 			(c2 * d2 * u_e + ((1 - c2) * d2 - (1 - c1) * d1) * u - c1 * d1 * u_w) / dx_half -
-			(1 / (density * dx_half)) * (p - p_w) + (2 / (density * dz)) *
-			(mu_n * (w_n - w_nw) / dx_half - mu * (w - w_w) / dx_half)) / 
-			(1 / delta_t + 2 * mu_n / (density * dz * dz_half_plus) +
+			(1 / (density * dx_half)) * (p - p_w) + (1 / (density * dz)) *
+			(mu_avg_n * (w_n - w_nw) / dx_half - mu_avg * (w - w_w) / dx_half)) / 
+			(1 / delta_t + 1 * mu_avg_n / (density * dz * dz_half_plus) +
 			 ((1 - c4) * d4 - d3) / dz);
 }
 
@@ -367,6 +438,9 @@ static inline double calculate_velocity_x_mu_2_half_2(grid_node *grid, grid_node
 	double dx_w = grid[(i - 1) * m + m - 2].dx;
 	double dx = grid[i * m + m - 2].dx;
 	double mu = grid[i * m + m - 2].mu;
+	double mu_avg_n = (grid[i * m + m - 2].mu + grid[(i - 1) * m + m - 2].mu) / 2;
+	double mu_avg = (grid[i * m + m - 2].mu + grid[(i - 1) * m + m - 2].mu +
+			grid[i * m + m - 3].mu + grid[(i - 1) * m + m - 3].mu) / 4;
 	double mu_w = grid[(i - 1) * m + m - 2].mu;
 	double u_e = ti_half_1[m - 2].y[i + 1];
 	double u_w = ti_half_1[m - 2].y[i - 1];
@@ -383,10 +457,10 @@ static inline double calculate_velocity_x_mu_2_half_2(grid_node *grid, grid_node
 
 	return (u_prev / delta_t + (2 / (density * dx_half)) * (mu * (u_e - u) / dx - mu_w * (u - u_w) / dx_w) -
 			(c2 * d2 * u_e + ((1 - c2) * d2 - (1 - c1) * d1) * u - c1 * d1 * u_w) / dx_half -
-			(p - p_w) / (density * dx_half) + 2 / (density * dz) * 
-			(mu * (w_n - w_nw) / dx_half - mu * (w - w_w) / dx_half)) /
-			(1 / delta_t + 2 * mu / (density * dz * dz) +
-			 2 * mu / (density * dz * dz_half_minus) +
+			(p - p_w) / (density * dx_half) + 1 / (density * dz) * 
+			(mu_avg_n * (w_n - w_nw) / dx_half - mu_avg * (w - w_w) / dx_half)) /
+			(1 / delta_t + 1 * mu_avg_n / (density * dz * dz) +
+			 1 * mu_avg / (density * dz * dz_half_minus) +
 			 (1 - c3) * d3 / dz);
 }
 
@@ -420,15 +494,18 @@ static void calculate_velocity_x(grid_node *grid_prev, grid_node *grid_cur, grid
 		}
 		fprintf(stderr, "\n");
 	}
-	fprintf(stderr, "VELOCITY_X_B_HALF_1:\n");*/
+	fprintf(stderr, "VELOCITY_X_B_HALF_1:\n");
+	*/
 	calculate_velocity_x_b_half_1(grid_prev, pi.ti_half_1, n, m);
-	/*for (size_t k = 0; k < pi.m; ++k) {
+	/*
+	for (size_t k = 0; k < pi.m; ++k) {
 		for (size_t i = 0; i <= pi.ti_half_1[k].n; ++i) {
 			fprintf(stderr, "%lf ", pi.ti_half_1[k].b[i]);
 		}
 		fprintf(stderr, "\n");
 	}
-	fprintf(stderr, "VELOCITY_X_C_HALF_1:\n");*/
+	fprintf(stderr, "VELOCITY_X_C_HALF_1:\n");
+	*/
 	calculate_velocity_x_c_half_1(grid_prev, pi.ti_half_1, n, m);
 	/*
 	for (size_t k = 0; k < pi.m; ++k) {
@@ -447,9 +524,10 @@ static void calculate_velocity_x(grid_node *grid_prev, grid_node *grid_cur, grid
 		}
 		fprintf(stderr, "\n");
 	}
-*/
+	*/
 	prs_half_1(&pi);
-/*	fprintf(stderr, "VELOCITY_X_Y_HALF_1:\n");
+	/*
+	fprintf(stderr, "VELOCITY_X_Y_HALF_1:\n");
 	for (size_t k = 0; k < pi.m; ++k) {
 		for (size_t i = 0; i <= pi.ti_half_1[k].n; ++i) {
 			fprintf(stderr, "%lf ", pi.ti_half_1[k].y[i]);
@@ -471,11 +549,12 @@ static void calculate_velocity_x(grid_node *grid_prev, grid_node *grid_cur, grid
 		pi.ti_half_2[i].xi_2 = calculate_velocity_x_xi_2_half_2(grid_prev, i, m);
 		pi.ti_half_2[i].mu_1 = calculate_velocity_x_mu_1_half_2(grid_prev, grid_last_layer, pi.ti_half_1, i, m);
 		pi.ti_half_2[i].mu_2 = calculate_velocity_x_mu_2_half_2(grid_prev, grid_last_layer, pi.ti_half_1, i, m);
-	//	fprintf(stderr, "XI_1 = %lf, XI_2 = %lf, MU_1 = %lf, MU_2 = %lf\n", pi.ti_half_2[i].xi_1, pi.ti_half_2[i].xi_2, pi.ti_half_2[i].mu_1, pi.ti_half_2[i].mu_2);
+		//fprintf(stderr, "XI_1 = %lf, XI_2 = %lf, MU_1 = %lf, MU_2 = %lf\n", pi.ti_half_2[i].xi_1, pi.ti_half_2[i].xi_2, pi.ti_half_2[i].mu_1, pi.ti_half_2[i].mu_2);
 	}
 
 	calculate_velocity_x_a_half_2(grid_prev, pi.ti_half_2, n, m);
-	/*fprintf(stderr, "VELOCITY_X_A_HALF_2:\n");
+	/*
+	fprintf(stderr, "VELOCITY_X_A_HALF_2:\n");
 	for (size_t k = 1; k < pi.n; ++k) {
 		for (size_t i = 0; i <= pi.ti_half_2[k].n; ++i) {
 			fprintf(stderr, "%lf ", pi.ti_half_2[k].a[i]);
@@ -524,8 +603,8 @@ static void calculate_velocity_x(grid_node *grid_prev, grid_node *grid_cur, grid
 		}
 		fprintf(stderr, "\n");
 	}
-
 	*/
+
 	double *tmp = calloc(n * m, sizeof(double));
 	for (size_t i = 1; i < pi.n; ++i) {
 		memcpy(&tmp[i * m], pi.ti_half_2[i].y, m * sizeof(double));
@@ -883,7 +962,7 @@ static inline void calculate_velocity_z_d_half_2(grid_node *grid, grid_node *gri
 			if (i == 0) {
 				ti_half_2[i].d[k] = w_prev / delta_t + (1 / (density * dx)) * 
 					(mu_avg_e * (w_e - w) / dx_half_plus - mu_avg * (2 * w) / dx) -
-					(c2 * d2 * w_e - (1 - c2) * d2 * w) / dx - (p - p_s) / (density * dz_half_minus) +
+					(c2 * d2 * w_e + (1 - c2) * d2 * w) / dx - (p - p_s) / (density * dz_half_minus) +
 					(1 / (density * dx * dz_half_minus)) * mu_avg_e * (u_e - u_se);
 			} else if (i == n - 2) {
 				mu_avg_e = (grid[i * m + k].mu + grid[i * m + k - 1].mu) / 2;
@@ -946,7 +1025,7 @@ static inline double calculate_velocity_z_mu_1_half_2(grid_node *grid, grid_node
 				(c2 * w_e + (1 - c2) * w) * d2 / dx) /
 				(1 / delta_t + 4 * mu / (density * dz * dz) - (2 * c3 - 1) * d3 / dz);
 	} else if (i == n - 2) {
-		return  (w_prev / delta_t + (1 / (density * dx)) * (mu_avg_e * (2 * w) / dx - mu_avg * (w - w_w) / dx_half_minus) - 
+		return  (w_prev / delta_t + (1 / (density * dx)) * (-mu_avg_e * (2 * w) / dx - mu_avg * (w - w_w) / dx_half_minus) - 
 				(c1 * d1 * w_w + (1 - c1) * d1 * w) / dx) /
 				(1 / delta_t + 4 * mu / (density * dz * dz) - (2 * c3 - 1) * d3 / dz);
 	} else {
@@ -1025,8 +1104,8 @@ static void calculate_velocity_z(grid_node *grid_prev, grid_node *grid_cur, grid
 		}
 		fprintf(stderr, "\n");
 	}
-
 	*/
+
 	prs_half_1(&pi);
 	/*
 	fprintf(stderr, "VELOCITY_Z_Y_HALF_1:\n");
@@ -1052,7 +1131,7 @@ static void calculate_velocity_z(grid_node *grid_prev, grid_node *grid_cur, grid
 		pi.ti_half_2[i].xi_2 = 0; 
 		pi.ti_half_2[i].mu_1 = calculate_velocity_z_mu_1_half_2(grid_prev, grid_last_layer, pi.ti_half_1, i, n, m);
 		pi.ti_half_2[i].mu_2 = calculate_velocity_z_mu_2_half_2(grid_prev, i, m);
-	//	fprintf(stderr, "XI_1 = %lf, XI_2 = %lf, MU_1 = %lf, MU_2 = %lf\n", pi.ti_half_2[i].xi_1, pi.ti_half_2[i].xi_2, pi.ti_half_2[i].mu_1, pi.ti_half_2[i].mu_2);
+		fprintf(stderr, "XI_1 = %lf, XI_2 = %lf, MU_1 = %lf, MU_2 = %lf\n", pi.ti_half_2[i].xi_1, pi.ti_half_2[i].xi_2, pi.ti_half_2[i].mu_1, pi.ti_half_2[i].mu_2);
 	}
 
 	calculate_velocity_z_a_half_2(grid_prev, pi.ti_half_2, n, m);
@@ -1086,7 +1165,7 @@ static void calculate_velocity_z(grid_node *grid_prev, grid_node *grid_cur, grid
 	}
 	*/
 	calculate_velocity_z_d_half_2(grid_prev, grid_last_layer, pi.ti_half_1, pi.ti_half_2, n, m);
-	/*
+	/* 
 	fprintf(stderr, "VELOCITY_Z_D_HALF_2:\n");
 	for (size_t k = 0; k < pi.n; ++k) {
 		for (size_t i = 0; i <= pi.ti_half_2[k].n; ++i) {
@@ -1094,8 +1173,8 @@ static void calculate_velocity_z(grid_node *grid_prev, grid_node *grid_cur, grid
 		}
 		fprintf(stderr, "\n");
 	}
-
 	*/
+
 	prs_half_2(&pi);
 
 	/*
@@ -1136,32 +1215,32 @@ static void calculate_velocity_z(grid_node *grid_prev, grid_node *grid_cur, grid
 
 static inline void calculate_p_a_half_1(grid_node *grid, tma_info *ti, size_t n, size_t m)
 {
-	for (size_t k = 1; k < m - 2; ++k) {
+	for (size_t k = 0; k < m - 1; ++k) {
 		for (size_t i = 1; i < n - 2; ++i) {
 			double dx = grid[i * m + k].dx;
 			double dx_half_minus = (grid[i * m + k].dx + grid[(i - 1) * m + k].dx) / 2;
 
-			ti[k].a[i] = 1 / (dx * dx_half_minus);
+			ti[k].a[i] = -1 / (dx * dx_half_minus);
 		}
 	}
 }
 
 static inline void calculate_p_b_half_1(grid_node *grid, tma_info *ti, size_t n, size_t m, double tau)
 {
-	for (size_t k = 1; k < m - 2; ++k) {
+	for (size_t k = 0; k < m - 1; ++k) {
 		for (size_t i = 1; i < n - 2; ++i) {
 			double dx = grid[i * m + k].dx;
 			double dx_half_minus = (grid[i * m + k].dx + grid[(i - 1) * m + k].dx) / 2;
 			double dx_half_plus = (grid[i * m + k].dx + grid[(i + 1) * m + k].dx) / 2;
 			
-			ti[k].b[i] = -1 / (dx * dx_half_minus) + 1 / (dx * dx_half_plus) + 1 / tau;
+			ti[k].b[i] = 1 / (dx * dx_half_minus) + 1 / (dx * dx_half_plus) + 1 / tau;
 		}
 	}
 }
 
 static inline void calculate_p_c_half_1(grid_node *grid, tma_info *ti, size_t n, size_t m)
 {
-	for (size_t k = 1; k < m - 2; ++k) {
+	for (size_t k = 0; k < m - 1; ++k) {
 		for (size_t i = 1; i < n - 2; ++i) {
 			double dx = grid[i * m + k].dx;
 			double dx_half_plus = (grid[i * m + k].dx + grid[(i + 1) * m + k].dx) / 2;
@@ -1171,66 +1250,173 @@ static inline void calculate_p_c_half_1(grid_node *grid, tma_info *ti, size_t n,
 	}
 }
 
-static inline void calculate_p_d_half_1(grid_node *grid, grid_node *grid_prev, tma_info *ti, size_t n, size_t m, double tau)
+static inline void calculate_p_d_half_1(grid_node *grid, grid_node *grid_prev, grid_node *grid_last_layer, tma_info *ti, size_t n, size_t m, double tau, double t)
 {
 	double density = get_blood_density();
-	for (size_t k = 1; k < m - 2; ++k) {
+	for (size_t k = 0; k < m - 1; ++k) {
+		double x = 0;
 		for (size_t i = 1; i < n - 2; ++i) {
-			double p_prev = grid_prev[i * m + k].p;
+			double p_prev = grid_last_layer[i * m + k].p;
 			double p = grid_prev[i * m + k].p;
-			double p_n = grid_prev[i * m + k + 1].p;
-			double p_s = grid_prev[i * m + k - 1].p;
+			double p_n = (k == m - 2 ? 0 : grid_prev[i * m + k + 1].p);
+			double p_s = (k == 0 ? 0 : grid_prev[i * m + k - 1].p);
 			double dz = grid[i * m + k].dz;
-			double dz_half_plus = (grid[i * m + k].dz + grid[i * m + k + 1].dz) / 2;
-			double dz_half_minus = (grid[i * m + k].dz + grid[i * m + k - 1].dz) / 2;
+			double dz_half_plus = (k == m - 2 ? 0 : (grid[i * m + k].dz + grid[i * m + k + 1].dz) / 2);
+			double dz_half_minus = (k == 0 ? 0 : (grid[i * m + k].dz + grid[i * m + k - 1].dz) / 2);
 			double dx = grid[i * m + k].dx;
 			double u = grid[i * m + k].u;
-			double u_n = grid[i * m + k + 1].u;
-			double u_s = grid[i * m + k - 1].u;
+			double u_n = (k == m - 2 ? 0 : grid[i * m + k + 1].u);
+			double u_s = (k == 0 ? 0 : grid[i * m + k - 1].u);
 			double u_e = grid[(i + 1) * m + k].u;
-			double u_ne = grid[(i + 1) * m + k + 1].u;
-			double u_se = grid[(i + 1) * m + k - 1].u;
+			double u_ne = (k == m - 2 ? 0 : grid[(i + 1) * m + k + 1].u);
+			double u_se = (k == 0 ? 0 : grid[(i + 1) * m + k - 1].u);
 			double w = grid[i * m + k].w;
 			double w_n = grid[i * m + k + 1].w;
-			double w_s = grid[i * m + k - 1].w;
+			double w_w = grid[(i - 1) * m + k].w;
 			double w_e = grid[(i + 1) * m + k].w;
 			double w_ne = grid[(i + 1) * m + k + 1].w;
 			double w_nw = grid[(i - 1) * m + k + 1].w;
-			
-			ti[k].d[i] = p_prev / tau + 1 / dz * ((p_n - p) / dz_half_plus + (p - p_s) / dz_half_minus) -
-				2 * density * ((u_e - u) * (w_n - w) / (dz * dx) - 
-				(u_n - u_s + u_ne - u_se) * (w_e - w_s + w_ne - w_nw) / (16 * dz * dx));
+			double mu = grid_prev[i * m + k].mu;
+		
+			if (k == 0) {
+				ti[k].d[i] = p_prev / tau + (p_n - p) / (dz * dz_half_plus) -
+					2 * density * ((u_e - u) * (w_n - w) / (dz * dx) - 
+					(u_n - u + u_ne - u_e) * (w_e - w_w + w_ne - w_nw) / (16 * dz * dx));
+			} else if (k == m - 2) {
+				double R = get_vessel_size_x() / 2;
+				double x_ = x + dx / 2;
+				
+				ti[k].d[i] = p_prev / tau + 1 / dz * ((density * w_0_derivative_t(t) * x_ * (2 - x_ / R) / R +
+							mu * 2 * w_0(t) / (R * R)) - (p - p_s) / dz_half_minus) -
+					2 * density * ((u_e - u) * (w_n - w) / (dz * dx) - 
+					(-u_s - u_se) * (w_e - w_w + w_ne - w_nw) / (16 * dz * dx));
+			} else {
+				ti[k].d[i] = p_prev / tau + 1 / dz * ((p_n - p) / dz_half_plus - (p - p_s) / dz_half_minus) -
+					2 * density * ((u_e - u) * (w_n - w) / (dz * dx) - 
+					(u_n - u_s + u_ne - u_se) * (w_e - w_w + w_ne - w_nw) / (16 * dz * dx));
+			}
+			x += dx;
 		}
 	}
 }
 
-static inline double calculate_p_mu_1_half_1(grid_node *grid, size_t k, size_t m)
+static inline double calculate_p_xi_1_half_1(grid_node *grid, size_t k, size_t m, double tau)
 {
-	ssize_t i = 0;
-	double mu_e = grid[(i + 1) * m + k].mu;
+	size_t i = 0;
+	double dx = grid[i * m + k].dx;
 	double dx_half_plus = (grid[i * m + k].dx + grid[(i + 1) * m + k].dx) / 2;
-	double dx_e = grid[(i + 1) * m + k].dx;
-	double u_e = grid[(i + 1) * m + k].u;
-	double u_ee = grid[(i + 2) * m + k].u;
-
-	return -mu_e * dx_half_plus * (4 * u_e - 0.5 * u_ee) / dx_e;
+	
+	return tau / (tau + dx * dx_half_plus);
 }
 
-static inline double calculate_p_mu_2_half_1(grid_node *grid, size_t k, ssize_t n, size_t m)
+static inline double calculate_p_mu_1_half_1(grid_node *grid, grid_node *grid_prev, grid_node *grid_last_layer, size_t k, size_t m, double t, double tau)
+{
+	ssize_t i = 0;
+	double density = get_blood_density();
+	double mu = grid_prev[i * m + k].mu;
+	double dz = grid[i * m + k].dz;
+	double dz_half_plus = (k == m - 2 ? 0 : (grid[i * m + k].dz + grid[i * m + k + 1].dz) / 2);
+	double dz_half_minus = (k == 0 ? 0 : (grid[i * m + k].dz + grid[i * m + k - 1].dz) / 2);
+	double dx = grid[i * m + k].dx;
+	double dx_e = grid[(i + 1) * m + k].dx;
+	double dx_half_plus = (grid[i * m + k].dx + grid[(i + 1) * m + k].dx) / 2;
+	double u_e = grid[(i + 1) * m + k].u;
+	double u_ee = grid[(i + 2) * m + k].u;
+	double u_se = (k == 0 ? 0 : grid[(i + 1) * m + k - 1].u);
+	double u_ne = (k == m - 2 ? 0 : grid[(i + 1) * m + k + 1].u);
+	double w = grid[i * m + k].w;
+	double w_e = grid[(i + 1) * m + k].w;
+	double w_n = grid[i * m + k + 1].w;
+	double w_ne = grid[(i + 1) * m + k + 1].w;
+	double p = grid_prev[i * m + k].p;
+	double p_prev = grid_last_layer[i * m + k].p;
+	double p_n = (k == m - 2 ? 0 : grid_prev[i * m + k + 1].p);
+	double p_s = (k == 0 ? 0 : grid_prev[i * m + k - 1].p);
+
+	if (k == 0) {
+		return (p_prev / tau - 4 * mu * (dx * u_ee - (dx + dx_e) * u_e) / (dx * dx * dx_e * (dx + dx_e)) +
+			(p_n - p) / (dz * dz_half_plus) -
+			2 * density * (u_e * (w_n - w) -
+			(u_ne - u_e) * (w_e + w_ne + w + w_n) / 16) / (dz * dx)) /
+			(1 / tau + 1 / (dx * dx_half_plus));
+	} else if (k == m - 2) {
+		double x = grid[i * m + k].dx / 2;
+		double R = get_vessel_size_x() / 2;
+		return (p_prev / tau - 4 * mu * (dx * u_ee - (dx + dx_e) * u_e) / (dx * dx * dx_e * (dx + dx_e)) +
+			(density * w_0_derivative_t(t) * x * (2 - x / R) / R + mu * 2 * w_0(t) / (R * R) - (p - p_s) / dz_half_minus) / dz -
+			2 * density * (u_e * (w_n - w) +
+					(u_se * (w_e + w_ne + w_n + w) / 16)) / (dx * dz)) /
+			(1 / tau + 1 / (dx * dx_half_plus));
+	} else {
+		return (p_prev / tau - 4 * mu * (dx * u_ee - (dx + dx_e) * u_e) / (dx * dx * dx_e * (dx + dx_e)) +
+			((p_n - p) / dz_half_plus - (p - p_s) / dz_half_minus) / dz -
+			2 * density * (u_e * (w_n - w) -
+			(u_ne - u_se) * (w_e + w_ne + w + w_n) / 16) / (dz * dx)) /
+			(1 / tau + 1 / (dx * dx_half_plus));
+	}
+}
+
+static inline double calculate_p_xi_2_half_1(grid_node *grid, size_t k, ssize_t n, size_t m, double tau)
 {
 	ssize_t i = n - 2;
-	double mu = grid[i * m + k].mu;
 	double dx = grid[i * m + k].dx;
 	double dx_half_minus = (grid[i * m + k].dx + grid[(i - 1) * m + k].dx) / 2;
-	double u = grid[i * m + k].u;
-	double u_w = grid[(i - 1) * m + k].u;
+	
+	return tau / (tau + dx * dx_half_minus);
+}
 
-	return mu * dx_half_minus * (4 * u - 0.5 * u_w) / dx;
+static inline double calculate_p_mu_2_half_1(grid_node *grid, grid_node *grid_prev, grid_node *grid_last_layer, size_t k, ssize_t n, size_t m, double t, double tau)
+{
+	ssize_t i = n - 2;
+	double density = get_blood_density();
+	double mu = grid_prev[i * m + k].mu;
+	double dz = grid[i * m + k].dz;
+	double dz_half_plus = (k == m - 2 ? 0 : (grid[i * m + k].dz + grid[i * m + k + 1].dz) / 2);
+	double dz_half_minus = (k == 0 ? 0 : (grid[i * m + k].dz + grid[i * m + k - 1].dz) / 2);
+	double dx = grid[i * m + k].dx;
+	double dx_w = grid[(i - 1) * m + k].dx;
+	double dx_half_minus = (grid[i * m + k].dx + grid[(i - 1) * m + k].dx) / 2;
+	double u_w = grid[(i - 1) * m + k].u;
+	double u_n = (k == m - 2 ? 0 : grid[i * m + k + 1].u);
+	double u_s = (k == 0 ? 0 : grid[i * m + k - 1].u);
+	double u = grid[i * m + k].u;
+	double w = grid[i * m + k].w;
+	double w_w = grid[(i - 1) * m + k].w;
+	double w_n = grid[i * m + k + 1].w;
+	double w_nw = grid[(i - 1) * m + k + 1].w;
+	double p = grid_prev[i * m + k].p;
+	double p_prev = grid_last_layer[i * m + k].p;
+	double p_n = (k == m - 2 ? 0 : grid_prev[i * m + k + 1].p);
+	double p_s = (k == 0 ? 0 : grid_prev[i * m + k - 1].p);
+
+	if (k == 0) {
+		double u = grid[i * m + k].u;
+		return (p_prev / tau + 4 * mu * (dx * u_w - (dx + dx_w) * u) / (dx * dx * dx_w * (dx + dx_w)) +
+			(p_n - p) / (dz * dz_half_plus) -
+			2 * density * (-u * (w_n - w) -
+			(u_n - u) * (-w_w - w_nw - w - w_n) / 16) / (dz * dx)) /
+			(1 / tau + 1 / (dx * dx_half_minus));
+	} else if (k == m - 2) {
+		double R = get_vessel_size_x() / 2;
+		double x = 2 * R - dx / 2; 
+		return (p_prev / tau + 4 * mu * (dx * u_w - (dx + dx_w) * u) / (dx * dx * dx_w * (dx + dx_w)) +
+			(density * w_0_derivative_t(t) * 
+			x * (2 - x / R) / R + mu * 2 * w_0(t) / (R * R) - (p - p_s) / dz_half_minus) / dz -
+			2 * density * (-u * (w_n - w) +
+					(u_s * (-w_w - w_nw - w - w_n) / 16)) / (dx * dz)) /
+			(1 / tau + 1 / (dx * dx_half_minus));
+	} else {
+		return (p_prev / tau + 4 * mu * (dx * u_w - (dx + dx_w) * u) / (dx * dx * dx_w * (dx + dx_w)) +
+			((p_n - p) / dz_half_plus - (p - p_s) / dz_half_minus) / dz -
+			2 * density * (-u * (w_n - w) -
+			(u_n - u_s) * (-w_w - w_nw - w - w_n) / 16) / (dz * dx)) / 
+			(1 / tau + 1 / (dx * dx_half_minus));
+	}
 }
 
 static inline void calculate_p_a_half_2(grid_node *grid, tma_info *ti, size_t n, size_t m)
 {
-	for (size_t i = 1; i < n - 2; ++i) {
+	for (size_t i = 0; i < n - 1; ++i) {
 		for (size_t k = 1; k < m - 2; ++k) {
 			double dz = grid[i * m + k].dz;
 			double dz_half_minus = (grid[i * m + k].dz + grid[i * m + k - 1].dz) / 2;
@@ -1242,20 +1428,20 @@ static inline void calculate_p_a_half_2(grid_node *grid, tma_info *ti, size_t n,
 
 static inline void calculate_p_b_half_2(grid_node *grid, tma_info *ti, size_t n, size_t m, double tau)
 {
-	for (size_t i = 1; i < n - 2; ++i) {
+	for (size_t i = 0; i < n - 1; ++i) {
 		for (size_t k = 1; k < m - 2; ++k) {
 			double dz = grid[i * m + k].dz;
 			double dz_half_minus = (grid[i * m + k].dz + grid[i * m + k - 1].dz) / 2;
 			double dz_half_plus = (grid[i * m + k].dz + grid[i * m + k + 1].dz) / 2;
 
-			ti[i].b[k] = -1 / (dz * dz_half_minus) + 1 / (dz * dz_half_plus) + 1 / tau;
+			ti[i].b[k] = -1 / (dz * dz_half_minus) - 1 / (dz * dz_half_plus) + 1 / tau;
 		}
 	}
 }
 
 static inline void calculate_p_c_half_2(grid_node *grid, tma_info *ti, size_t n, size_t m)
 {
-	for (size_t i = 1; i < n - 2; ++i) {
+	for (size_t i = 0; i < n - 1; ++i) {
 		for (size_t k = 1; k < m - 2; ++k) {
 			double dz = grid[i * m + k].dz;
 			double dz_half_plus = (grid[i * m + k].dz + grid[i * m + k + 1].dz) / 2;
@@ -1265,40 +1451,180 @@ static inline void calculate_p_c_half_2(grid_node *grid, tma_info *ti, size_t n,
 	}
 }
 
-static inline void calculate_p_d_half_2(grid_node *grid, grid_node *grid_prev, tma_info *ti_half_1, tma_info *ti_half_2, size_t n, size_t m, double tau)
+static inline void calculate_p_d_half_2(grid_node *grid, grid_node *grid_prev, grid_node *grid_last_layer, tma_info *ti_half_1, tma_info *ti_half_2, size_t n, size_t m, double tau)
 {
 	double density = get_blood_density();
-	for (size_t i = 1; i < n - 2; ++i) {
+	for (size_t i = 0; i < n - 1; ++i) {
 		for (size_t k = 1; k < m - 2; ++k) {
-			double p_prev = grid_prev[i * m + k].p;
+			double p_prev = grid_last_layer[i * m + k].p;
 			double p = ti_half_1[k].y[i];
-			double p_w = ti_half_1[k].y[i - 1];
-			double p_e = ti_half_1[k].y[i + 1];
+			double p_w = (i == 0 ? 0 : ti_half_1[k].y[i - 1]);
+			double p_e = (i == n - 2 ? 0 : ti_half_1[k].y[i + 1]);
+			double mu = grid_prev[i * m + k].mu;
 			double dz = grid[i * m + k].dz;
 			double dx = grid[i * m + k].dx;
-			double dx_half_plus = (grid[(i + 1) * m + k].dx + grid[i * m + k].dx) / 2;
-			double dx_half_minus = (grid[(i - 1) * m + k].dx + grid[i * m + k].dx) / 2;
+			double dx_e = (i == n - 2 ? 0 : grid[(i + 1) * m + k].dx);
+			double dx_w = (i == 0 ? 0 : grid[(i - 1) * m + k].dx);
+			double dx_half_plus = (i == n - 2 ? 0 : (grid[(i + 1) * m + k].dx + grid[i * m + k].dx) / 2);
+			double dx_half_minus = (i == 0 ? 0 : (grid[(i - 1) * m + k].dx + grid[i * m + k].dx) / 2);
 			double u = grid[i * m + k].u;
 			double u_n = grid[i * m + k + 1].u;
 			double u_s = grid[i * m + k - 1].u;
-			double u_e = grid[(i + 1) * m + k].u;
+			double u_e = (i == n - 2 ? 0 : grid[(i + 1) * m + k].u);
+			double u_w = (i == 0 ? 0 : grid[(i - 1) * m + k].u);
+			double u_ee = (i == n - 2 ? 0 : grid[(i + 2) * m + k].u);
 			double u_ne = grid[(i + 1) * m + k + 1].u;
 			double u_se = grid[(i + 1) * m + k - 1].u;
 			double w = grid[i * m + k].w;
 			double w_n = grid[i * m + k + 1].w;
-			double w_s = grid[i * m + k - 1].w;
-			double w_e = grid[(i + 1) * m + k].w;
-			double w_ne = grid[(i + 1) * m + k + 1].w;
-			double w_nw = grid[(i - 1) * m + k + 1].w;
+			double w_w = (i == 0 ? 0 : grid[(i - 1) * m + k].w);
+			double w_e = (i == n - 2 ? 0 : grid[(i + 1) * m + k].w);
+			double w_ne = (i == n - 2 ? 0 : grid[(i + 1) * m + k + 1].w);
+			double w_nw = (i == 0 ? 0 : grid[(i - 1) * m + k + 1].w);
 
-			ti_half_2[i].d[k] = p_prev / tau + ((p_e - p) / dx_half_plus + (p - p_w) / dx_half_minus) / dx -
-				2 * density * ((u_e - u) * (w_n - w) / (dx * dz) - 
-				(u_n - u_s + u_ne - u_se) * (w_e - w_s + w_ne - w_nw) / (16 * dz * dx));
+			if (i == 0) {
+				ti_half_2[i].d[k] = p_prev / tau + ((p_e - p) / dx_half_plus - 4 * mu * (dx * u_ee - (dx + dx_e) * u_e) / (dx * dx_e * (dx + dx_e))) / dx -
+					2 * density * (u_e * (w_n - w) / (dx * dz) - 
+					(u_ne - u_se) * (w_e + w + w_ne + w_n) / (16 * dz * dx));
+			} else if (i == n - 2) {
+				ti_half_2[i].d[k] = p_prev / tau + (4 * mu * (dx * u_w - (dx + dx_w) * u) / (dx * dx_w * (dx + dx_w)) - (p - p_w) / dx_half_minus) / dx -
+					2 * density * ((-u) * (w_n - w) / (dx * dz) - 
+					(u_n - u_s) * (-w - w_w - w_n - w_nw) / (16 * dz * dx));
+			} else {
+				ti_half_2[i].d[k] = p_prev / tau + ((p_e - p) / dx_half_plus - (p - p_w) / dx_half_minus) / dx -
+					2 * density * ((u_e - u) * (w_n - w) / (dx * dz) - 
+					(u_n - u_s + u_ne - u_se) * (w_e - w_w + w_ne - w_nw) / (16 * dz * dx));
+			}
 		}
 	}
 }
 
-static void calculate_p(grid_node *grid_prev, grid_node *grid_cur, size_t n, size_t m, double tau)
+static inline double calculate_p_xi_1_half_2(grid_node *grid, size_t i, size_t m, double tau)
+{
+	ssize_t k = 0;
+	double dz = grid[i * m + k].dz;
+	double dz_half_plus = (grid[i * m + k].dz + grid[i * m + k + 1].dz) / 2;
+	
+	return tau / (tau + dz * dz_half_plus);
+}
+
+static inline double calculate_p_mu_1_half_2(grid_node *grid, grid_node *grid_prev, grid_node *grid_last_layer, tma_info *ti_half_1, size_t i, size_t n, size_t m, double tau)
+{
+	size_t k = 0;
+	double mu = grid_prev[i * m + k].mu;
+	double density = get_blood_density();
+	double dz = grid[i * m + k].dz;
+	double dz_half_plus = (grid[i * m + k].dz + grid[i * m + k + 1].dz) / 2;
+	double dx = grid[i * m + k].dx;
+	double dx_e = (i == n - 2 ? 0 : grid[(i + 1) * m + k].dx);
+	double dx_w = (i == 0 ? 0 : grid[(i - 1) * m + k].dx);
+	double dx_half_plus = (i == n - 2 ? 0 : (grid[i * m + k].dx + grid[(i + 1) * m + k].dx) / 2);
+	double dx_half_minus = (i == 0 ? 0 : (grid[i * m + k].dx + grid[(i - 1) * m + k].dx) / 2);
+	double p_prev = grid_last_layer[i * m + k].p;
+	double p = ti_half_1[k].y[i];
+	double p_w = (i == 0 ? 0 : ti_half_1[k].y[i - 1]);
+	double p_e = (i == n - 2 ? 0 : ti_half_1[k].y[i + 1]);
+	double u = grid[i * m + k].u;
+	double u_n = grid[i * m + k + 1].u;
+	double u_e = (i == n - 2 ? 0 : grid[(i + 1) * m + k].u);
+	double u_w = (i == 0 ? 0 : grid[(i - 1) * m + k].u);
+	double u_ee = (i == n - 2 ? 0 : grid[(i + 2) * m + k].u);
+	double u_ne = (i == n - 2 ? 0 : grid[(i + 1) * m + k + 1].u);
+	double w = grid[i * m + k].w;
+	double w_n = grid[i * m + k + 1].w;
+	double w_w = (i == 0 ? 0 : grid[(i - 1) * m + k].w);
+	double w_e = (i == n - 2 ? 0 : grid[(i + 1) * m + k].w);
+	double w_ne = (i == n - 2 ? 0 : grid[(i + 1) * m + k + 1].w);
+	double w_nw = (i == 0 ? 0 : grid[(i - 1) * m + k + 1].w);
+
+	if (i == 0) {
+		return (p_prev / tau + ((p_e - p) / dx_half_plus - 4 * mu * (dx * u_ee - (dx + dx_e) * u_e) /
+				(dx * dx_e * (dx + dx_e))) / dx -
+			2 * density * (u_e * (w_n - w) - (u_ne - u_e) *
+			(w_e + w_ne + w_n + w) / 16) / (dx * dz)) /
+			(1 / tau + 1 / (dz * dz_half_plus));
+	} else if (i == n - 2) {
+		return (p_prev / tau + (4 * mu * (dx * u_w - (dx + dx_w) * u) / (dx * dx_w * (dx + dx_w))
+				- (p - p_w) / dx_half_minus) / dx -
+			2 * density * (-u * (w_n - w) - (u_n - u) *
+			(-w - w_n - w_w - w_nw) / 16) / (dx * dz)) /
+			(1 / tau + 1 / (dz * dz_half_plus));
+	} else {
+		return (p_prev / tau + ((p_e - p) / dx_half_plus - (p - p_w) / dx_half_minus) / dx -
+			2 * density * ((u_e - u) * (w_n - w) - (u_n + u_ne - u - u_e) *
+			(w_e + w_ne - w_w - w_nw) / 16) / (dx * dz)) /
+			(1 / tau + 1 / (dz * dz_half_plus));
+	}
+}
+
+static inline double calculate_p_xi_2_half_2(grid_node *grid, size_t i, size_t m, double tau)
+{
+	ssize_t k = m - 2;
+	double dz = grid[i * m + k].dz;
+	double dz_half_minus = (grid[i * m + k].dz + grid[i * m + k - 1].dz) / 2;
+	
+	return tau / (tau + dz * dz_half_minus);
+}
+
+static inline double calculate_p_mu_2_half_2(grid_node *grid, grid_node *grid_prev, grid_node *grid_last_layer, tma_info *ti_half_1, size_t i, size_t n, size_t m, double t, double tau)
+{
+	ssize_t k = m - 2;
+	double mu = grid_prev[i * m + k].mu;
+	double density = get_blood_density();
+	double dz = grid[i * m + k].dz;
+	double dz_half_minus = (grid[i * m + k].dz + grid[i * m + k - 1].dz) / 2;
+	double dx = grid[i * m + k].dx;
+	double dx_e = (i == n - 2 ? 0 : grid[(i + 1) * m + k].dx);
+	double dx_w = (i == 0 ? 0 : grid[(i - 1) * m + k].dx);
+	double dx_half_plus = (i == n - 2 ? 0 : (grid[i * m + k].dx + grid[(i + 1) * m + k].dx) / 2);
+	double dx_half_minus = (i == 0 ? 0 : (grid[i * m + k].dx + grid[(i - 1) * m + k].dx) / 2);
+	double p_prev = grid_last_layer[i * m + k].p;
+	double p = ti_half_1[k].y[i];
+	double p_w = (i == 0 ? 0 : ti_half_1[k].y[i - 1]);
+	double p_e = (i == n - 2 ? 0 : ti_half_1[k].y[i + 1]);
+	double u = grid[i * m + k].u;
+	double u_s = grid[i * m + k - 1].u;
+	double u_e = (i == n - 2 ? 0 : grid[(i + 1) * m + k].u);
+	double u_w = (i == 0 ? 0 : grid[(i - 1) * m + k].u);
+	double u_ee = (i == n - 2 ? 0 : grid[(i + 2) * m + k].u);
+	double u_se = (i == n - 2 ? 0 : grid[(i + 1) * m + k - 1].u);
+	double w = grid[i * m + k].w;
+	double w_n = grid[i * m + k + 1].w;
+	double w_w = (i == 0 ? 0 : grid[(i - 1) * m + k].w);
+	double w_e = (i == n - 2 ? 0 : grid[(i + 1) * m + k].w);
+	double w_ne = (i == n - 2 ? 0 : grid[(i + 1) * m + k + 1].w);
+	double w_nw = (i == 0 ? 0 : grid[(i - 1) * m + k + 1].w);
+	double R = get_vessel_size_x() / 2;
+
+	if (i == 0) {
+		double x = dx / 2;
+		return (p_prev / tau + ((p_e - p) / dx_half_plus - 4 * mu * (dx * u_ee - (dx + dx_e) * u_e) / (dx * dx_e * (dx + dx_e))) / dx +
+			(density * w_0_derivative_t(t) * x * (2 - x / R) / R + mu * 2 * w_0(t) / (R * R)) / dz -
+			2 * density * (u_e * (w_n - w) - (-u_se) *
+			(w_e + w_ne + w + w_n) / 16) / (dx * dz)) /
+			(1 / tau + 1 / (dz * dz_half_minus));
+	} else if (i == n - 2) {
+		double x = 2 * R - dx / 2;
+		return (p_prev / tau + (4 * mu * (dx * u_w - (dx + dx_w) * u) / (dx * dx_w * (dx + dx_w)) - (p - p_w) / dx_half_minus) / dx +
+			(density * w_0_derivative_t(t) * x * (2 - x / R) / R + mu * 2 * w_0(t) / (R * R)) / dz -
+			2 * density * ((-u) * (w_n - w) - (-u_s) *
+			(-w - w_n - w_w - w_nw) / 16) / (dx * dz)) /
+			(1 / tau + 1 / (dz * dz_half_minus));
+	} else {
+		double x = 0;
+		for (size_t l = 0; l < i; ++l) {
+			x += grid[l * m + k].dx;
+		}
+		x += dx / 2;
+		return (p_prev / tau + ((p_e - p) / dx_half_plus - (p - p_w) / dx_half_minus) / dx +
+			(density * w_0_derivative_t(t) * x * (2 - x / R) / R + mu * 2 * w_0(t) / (R * R)) / dz -
+			2 * density * ((u_e - u) * (w_n - w) - (-u_s - u_se) *
+			(w_e + w_ne - w_w - w_nw) / 16) / (dx * dz)) /
+			(1 / tau + 1 / (dz * dz_half_minus));
+	}
+}
+
+static void calculate_p(grid_node *grid_prev, grid_node *grid_cur, grid_node *grid_last_layer, size_t n, size_t m, double tau, double t)
 {
 	prs_info pi;
 	pi.n = n - 2;
@@ -1315,10 +1641,10 @@ static void calculate_p(grid_node *grid_prev, grid_node *grid_cur, size_t n, siz
 		pi.ti_half_1[k].c = calloc((pi.ti_half_1[k].n + 1), sizeof(double));
 		pi.ti_half_1[k].d = calloc((pi.ti_half_1[k].n + 1), sizeof(double));
 		pi.ti_half_1[k].y = calloc(n, sizeof(double));
-		pi.ti_half_1[k].xi_1 = 1;
-		pi.ti_half_1[k].xi_2 = 1;
-		pi.ti_half_1[k].mu_1 = calculate_p_mu_1_half_1(grid_cur, k, m);
-		pi.ti_half_1[k].mu_2 = calculate_p_mu_2_half_1(grid_cur, k, n, m);
+		pi.ti_half_1[k].xi_1 = calculate_p_xi_1_half_1(grid_cur, k, m, tau);
+		pi.ti_half_1[k].xi_2 = calculate_p_xi_2_half_1(grid_cur, k, n, m, tau);
+		pi.ti_half_1[k].mu_1 = calculate_p_mu_1_half_1(grid_cur, grid_prev, grid_last_layer, k, m, t, tau);
+		pi.ti_half_1[k].mu_2 = calculate_p_mu_2_half_1(grid_cur, grid_prev, grid_last_layer, k, n, m, t, tau);
 		fprintf(stderr, "XI_1 = %lf, XI_2 = %lf, MU_1 = %lf, MU_2 = %lf\n", pi.ti_half_1[k].xi_1, pi.ti_half_1[k].xi_2, pi.ti_half_1[k].mu_1, pi.ti_half_1[k].mu_2);
 	}
 
@@ -1347,7 +1673,7 @@ static void calculate_p(grid_node *grid_prev, grid_node *grid_cur, size_t n, siz
 		fprintf(stderr, "\n");
 	}
 	fprintf(stderr, "PRESSURE_D_HALF_1:\n");
-	calculate_p_d_half_1(grid_cur, grid_prev, pi.ti_half_1, n, m, tau);
+	calculate_p_d_half_1(grid_cur, grid_prev, grid_last_layer, pi.ti_half_1, n, m, tau, t);
 	for (size_t k = 0; k < pi.m; ++k) {
 		for (size_t i = 0; i <= pi.ti_half_1[k].n; ++i) {
 			fprintf(stderr, "%lf ", pi.ti_half_1[k].d[i]);
@@ -1364,9 +1690,9 @@ static void calculate_p(grid_node *grid_prev, grid_node *grid_cur, size_t n, siz
 		fprintf(stderr, "\n");
 	}
 
-	pi.ti_half_2 = calloc(pi.n, sizeof(tma_info));
-
 	pi.n = n - 1;
+
+	pi.ti_half_2 = calloc(pi.n, sizeof(tma_info));
 	for (size_t i = 0; i < pi.n; ++i) {
 		pi.ti_half_2[i].n = pi.m - 1;
 		pi.ti_half_2[i].a = calloc((pi.ti_half_2[i].n + 1), sizeof(double));
@@ -1374,10 +1700,10 @@ static void calculate_p(grid_node *grid_prev, grid_node *grid_cur, size_t n, siz
 		pi.ti_half_2[i].c = calloc((pi.ti_half_2[i].n + 1), sizeof(double));
 		pi.ti_half_2[i].d = calloc((pi.ti_half_2[i].n + 1), sizeof(double));
 		pi.ti_half_2[i].y = calloc(m, sizeof(double));
-		pi.ti_half_2[i].xi_1 = 0;//calculate_p_xi_1_half_2(grid_prev, i, m);
-		pi.ti_half_2[i].xi_2 = 0;//calculate_p_xi_2_half_2(grid_prev, i, m);
-		pi.ti_half_2[i].mu_1 = 0;//calculate_p_mu_1_half_2(grid_prev, grid_last_layer, pi.ti_half_1, i, m);
-		pi.ti_half_2[i].mu_2 = 0;//calculate_p_mu_2_half_2(grid_prev, grid_last_layer, pi.ti_half_1, i, m);
+		pi.ti_half_2[i].xi_1 = calculate_p_xi_1_half_2(grid_cur, i, m, tau);
+		pi.ti_half_2[i].xi_2 = calculate_p_xi_2_half_2(grid_cur, i, m, tau);
+		pi.ti_half_2[i].mu_1 = calculate_p_mu_1_half_2(grid_cur, grid_prev, grid_last_layer, pi.ti_half_1, i, n, m, tau);
+		pi.ti_half_2[i].mu_2 = calculate_p_mu_2_half_2(grid_cur, grid_prev, grid_last_layer, pi.ti_half_1, i, n, m, t, tau);
 		fprintf(stderr, "XI_1 = %lf, XI_2 = %lf, MU_1 = %lf, MU_2 = %lf\n", pi.ti_half_2[i].xi_1, pi.ti_half_2[i].xi_2, pi.ti_half_2[i].mu_1, pi.ti_half_2[i].mu_2);
 	}
 
@@ -1405,7 +1731,7 @@ static void calculate_p(grid_node *grid_prev, grid_node *grid_cur, size_t n, siz
 		}
 		fprintf(stderr, "\n");
 	}
-	calculate_p_d_half_2(grid_cur, grid_prev, pi.ti_half_1, pi.ti_half_2, n, m, tau);
+	calculate_p_d_half_2(grid_cur, grid_prev, grid_last_layer, pi.ti_half_1, pi.ti_half_2, n, m, tau);
 	fprintf(stderr, "PRESSURE_D_HALF_2:\n");
 	for (size_t k = 0; k < pi.n; ++k) {
 		for (size_t i = 0; i <= pi.ti_half_2[k].n; ++i) {
@@ -1417,12 +1743,16 @@ static void calculate_p(grid_node *grid_prev, grid_node *grid_cur, size_t n, siz
 	prs_half_2(&pi);
 
 	fprintf(stderr, "PRESSURE_Y_HALF_2:\n");
-	for (size_t k = 1; k < pi.n; ++k) {
+	for (size_t k = 0; k < pi.n; ++k) {
 		for (size_t i = 0; i <= pi.ti_half_2[k].n; ++i) {
 			fprintf(stderr, "%lf ", pi.ti_half_2[k].y[i]);
 		}
 		fprintf(stderr, "\n");
 	}
+
+	memcpy(pi.ti_half_2[0].y, pi.ti_half_2[1].y, m * sizeof(double));
+	memcpy(pi.ti_half_2[pi.n - 1].y, pi.ti_half_2[pi.n - 2].y, m * sizeof(double));
+
 
 	double *tmp = calloc(n * m, sizeof(double));
 	for (size_t i = 0; i < pi.n; ++i) {
@@ -1430,6 +1760,11 @@ static void calculate_p(grid_node *grid_prev, grid_node *grid_cur, size_t n, siz
 	}
 
 	grid_fill(grid_cur, tmp, GRID_OFFSET_P);
+
+	for (size_t i = 0; i < n; ++i) {
+		grid_cur[i * m].p = grid_cur[i * m + 1].p;
+		grid_cur[i * m + m - 2].p = grid_cur[i * m + m - 3].p;
+	}
 
 	free(tmp);
 	for (size_t i = 0; i < pi.n; ++i) {
@@ -1454,7 +1789,8 @@ static void calculate_p(grid_node *grid_prev, grid_node *grid_cur, size_t n, siz
 static inline double init_w(double t, double x)
 {
 	double R = get_vessel_size_x() / 2;
-	return (-35 * pow(t - 0.1069, 2) + 0.5) * (x * (2 - x / R) / R);
+
+	return w_0(t) * (x * (2 - x / R)) / R; 
 }
 
 static void calculate_boundary_conditions(grid_node *grid, size_t n, size_t m, double t)
@@ -1534,11 +1870,13 @@ void calculate(double sigma, double t_beg, double t_end)
 			calculate_velocity_x(grid_prev, grid_cur, grid_cur_layer, n, m);
 			calculate_boundary_conditions(grid_cur, n, m, cur_layer * delta_t);
 			calculate_boundary_conditions(grid_prev, n, m, cur_layer * delta_t);
+//			calculate_p(grid_prev, grid_cur, grid_cur_layer, n, m, 0.1, (cur_layer + 1) * delta_t);
 			//fprintf(stderr, "GRID_PREV\n");
-			//grid_print_all(grid_prev, N_, M_, GRID_PRINT_AS_TABLE);
+			//grid_print_all(grid_prev, n, m, GRID_PRINT_AS_TABLE);
 			//fprintf(stderr, "GRID_CUR\n");
-			//grid_print_all(grid_cur, N_, M_, GRID_PRINT_AS_TABLE);
-//			calculate_p(grid_prev, grid_cur, n, m, 0.01);
+			//grid_print_all(grid_cur, n, m, GRID_PRINT_AS_TABLE);
+			//grid_print_all(grid_cur, n, m, GRID_PRINT_AS_TABLE);
+			//exit(0);
 			if (check_convergence(grid_prev, grid_cur, n, m, EPS)) {
 				grid_copy(grid_cur, &grid_next_layer);
 				break;
@@ -1566,7 +1904,7 @@ int main(void)
 	read_config("config.ex1");
 //	setvbuf(stdout, NULL, _IONBF, 0);
 
-	calculate(5, 0, 0.2);
+	calculate(5, 0, 1);
 	clear_config();
 	grid_clear();
 }
