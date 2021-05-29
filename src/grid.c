@@ -24,6 +24,7 @@ static size_t M;
 static double sigma;
 static double *dx;
 static double *dz;
+static FILE *out;
 
 static inline double f(double x, double sigma)
 {
@@ -32,7 +33,7 @@ static inline double f(double x, double sigma)
 
 static void normalize(double *a, size_t n)
 {
-	log_write(LOG_DEBUG, "Entering normalize function");
+	//log_write(LOG_DEBUG, "Entering normalize function");
 	double sum = 0;
 	for (size_t i = 0; i < n; ++i)
 		sum += a[i];
@@ -40,12 +41,12 @@ static void normalize(double *a, size_t n)
 	sum = 1 / sum;
 	for (size_t i = 0; i < n; ++i)
 		a[i] *= sum;
-	log_write(LOG_DEBUG, "Exiting normalize function");
+	//log_write(LOG_DEBUG, "Exiting normalize function");
 }
 
 static void grid_generate_dimension(double *a, size_t n, double size, double sigma)
 {
-	log_write(LOG_DEBUG, "Entering grid_generate_dimension function");
+	//log_write(LOG_DEBUG, "Entering grid_generate_dimension function");
 	double h = 10.0 / n;
 	size_t idx = 0;
 
@@ -56,12 +57,12 @@ static void grid_generate_dimension(double *a, size_t n, double size, double sig
 
 	for (size_t i = 0; i < n; ++i)
 		a[i] = a[i] * size;
-	log_write(LOG_DEBUG, "Exiting grid_generate_dimension function");
+	//log_write(LOG_DEBUG, "Exiting grid_generate_dimension function");
 }
 
 static void print_gnuplot(double *a, size_t n, double *b, size_t m)
 {
-	log_write(LOG_DEBUG, "Entering print_gnuplot function");
+	//log_write(LOG_DEBUG, "Entering print_gnuplot function");
 	double sum = 0;
 	for (size_t i = 0; i < n; ++i) {
 		printf("set arrow from 0,%.18lf to %lf,%.18lf nohead\n", sum, L, sum);
@@ -76,12 +77,12 @@ static void print_gnuplot(double *a, size_t n, double *b, size_t m)
 	}
 	printf("set arrow from %.18lf,0 to %.18lf,%lf nohead\n", sum, sum, H);
 	printf("plot 0\npause -1");
-	log_write(LOG_DEBUG, "Exiting print_gnuplot function");
+	//log_write(LOG_DEBUG, "Exiting print_gnuplot function");
 }
 
 grid_node *grid_generate(double sigma_, size_t *n, size_t *m)
 {
-	log_write(LOG_DEBUG, "Entering grid_generate function");
+	//log_write(LOG_DEBUG, "Entering grid_generate function");
 
 	static bool first_time_in_function = true;
 
@@ -125,7 +126,7 @@ grid_node *grid_generate(double sigma_, size_t *n, size_t *m)
 
 	//print_gnuplot(z, N, x, M);
 
-	log_write(LOG_DEBUG, "Exiting grid_generate function");
+	//log_write(LOG_DEBUG, "Exiting grid_generate function");
 
 	return grid;
 }
@@ -143,15 +144,15 @@ void grid_copy(grid_node *src, grid_node **dst)
 
 void grid_destroy(grid_node *grid)
 {
-	log_write(LOG_DEBUG, "Entering grid_destroy function");
+	//log_write(LOG_DEBUG, "Entering grid_destroy function");
 	if (grid)
 		free(grid);
-	log_write(LOG_DEBUG, "Exiting grid_destroy function");
+	//log_write(LOG_DEBUG, "Exiting grid_destroy function");
 }
 
 void grid_fill_from_config(grid_node *grid)
 {
-	log_write(LOG_DEBUG, "Entering grid_fill_from_config function");
+	//log_write(LOG_DEBUG, "Entering grid_fill_from_config function");
 	log_write(LOG_INFO, "Initializing grid...");
 	size_t nodes_number;
 	double *u;
@@ -176,71 +177,77 @@ void grid_fill_from_config(grid_node *grid)
 	free(p);
 	
 	log_write(LOG_INFO, "Initialized successfully!");
-	log_write(LOG_DEBUG, "Exiting grid_fill_from_config function");
+	//log_write(LOG_DEBUG, "Exiting grid_fill_from_config function");
 }
 
 void grid_fill(grid_node *grid, double *a, grid_offset offset)
 {
-	log_write(LOG_DEBUG, "Entering grid_fill function");
+	//log_write(LOG_DEBUG, "Entering grid_fill function");
 	size_t nodes_number = (N + 1) * (M + 1);
 
 	for (size_t i = 0; i < nodes_number; ++i)
 		*(double *)((char *)&grid[i] + offset) = a[i];
 
-	log_write(LOG_DEBUG, "Exiting grid_fill function");
+	//log_write(LOG_DEBUG, "Exiting grid_fill function");
 }
 
-void grid_print_elem(grid_node *grid, size_t n, size_t m, print_option mode, grid_offset offset)
+void grid_print_elem(grid_node *grid, size_t n, size_t m, print_option mode, grid_offset offset, const char *filename)
 {
-	log_write(LOG_DEBUG, "Entering grid_print_element function");
+	//log_write(LOG_DEBUG, "Entering grid_print_element function");
+	if (out == NULL) {
+		if (filename != NULL) 
+			out = fopen(filename, ((mode & GRID_PRINT_BINARY) ? "wb" : "w"));
+		else 
+			out = stdout;
+	}
 	if (mode & GRID_PRINT_AS_TABLE) {
 		switch (offset) {
 		case GRID_OFFSET_U:
-			printf("velocity_x:\n");
+			fprintf(out, "velocity_x:\n");
 			break;
 		case GRID_OFFSET_W:
-			printf("velocity_z:\n");
+			fprintf(out, "velocity_z:\n");
 			break;
 		case GRID_OFFSET_P:
-			printf("pressure:\n");
+			fprintf(out, "pressure:\n");
 			break;
 		case GRID_OFFSET_MU:
-			printf("mu:\n");
+			fprintf(out, "mu:\n");
 			break;
 		case GRID_OFFSET_DX:
-			printf("dx:\n");
+			fprintf(out, "dx:\n");
 			break;
 		case GRID_OFFSET_DZ:
-			printf("dz:\n");
+			fprintf(out, "dz:\n");
 			break;
 		default:
 			return;
 		}
 		for (size_t i = 0; i < n; ++i) {
 			for (size_t j = 0; j < m; ++j) {
-				printf("%lf\t", *(double *)((char *)&grid[i * m + j] + offset));
+				fprintf(out, "%lf\t", *(double *)((char *)&grid[i * m + j] + offset));
 			}
-			printf("\n");
+			fprintf(out, "\n");
 		}
 	} else if (mode & GRID_PRINT_FOR_CONFIG) {
 		switch (offset) {
 		case GRID_OFFSET_U:
-			printf("velocity_x = [ ");
+			fprintf(out, "velocity_x = [ ");
 			break;
 		case GRID_OFFSET_W:
-			printf("velocity_z = [ ");
+			fprintf(out, "velocity_z = [ ");
 			break;
 		case GRID_OFFSET_P:
-			printf("pressure = [ ");
+			fprintf(out, "pressure = [ ");
 			break;
 		case GRID_OFFSET_MU:
-			printf("mu = [ ");
+			fprintf(out, "mu = [ ");
 			break;
 		case GRID_OFFSET_DX:
-			printf("dx = [ ");
+			fprintf(out, "dx = [ ");
 			break;
 		case GRID_OFFSET_DZ:
-			printf("dz = [ ");
+			fprintf(out, "dz = [ ");
 			break;
 		default:
 			return;
@@ -248,29 +255,63 @@ void grid_print_elem(grid_node *grid, size_t n, size_t m, print_option mode, gri
 		for (size_t i = 0; i < n; ++i) 
 			for (size_t j = 0; j < m; ++j)
 				if (i == n - 1 && j == m - 1)
-					printf("%lf ]\n", *(double *)((char *)&grid[i * m + j] + offset));
+					fprintf(out, "%lf ]\n", *(double *)((char *)&grid[i * m + j] + offset));
 				else 
-					printf("%lf, ", *(double *)((char *)&grid[i * m + j] + offset));
-	}
-
-	log_write(LOG_DEBUG, "Exiting grid_print_element function");
-}
-
-void grid_print_all(grid_node *grid, size_t n, size_t m, print_option mode)
-{
-	log_write(LOG_DEBUG, "Entering grid_print_all function");
-
-	if ((mode & GRID_PRINT_AS_TABLE) || (mode & GRID_PRINT_FOR_CONFIG)) {
-		for (size_t i = 0; i != GRID_OFFSET_NUM; ++i) {
-			grid_print_elem(grid, n, m, mode, ALL_OFFSETS[i]);
+					fprintf(out, "%lf, ", *(double *)((char *)&grid[i * m + j] + offset));
+	} else if (mode & GRID_PRINT_BINARY) {
+		switch (offset) {
+		case GRID_OFFSET_U:
+			fwrite("velocity_x:\n", sizeof("velocity_x:\n"), 1, out);
+			break;
+		case GRID_OFFSET_W:
+			fwrite("velocity_z:\n", sizeof("velocity_z:\n"), 1, out);
+			break;
+		case GRID_OFFSET_P:
+			fwrite("pressure:\n", sizeof("pressure:\n"), 1, out);
+			break;
+		case GRID_OFFSET_MU:
+			fwrite("mu:\n", sizeof("mu:\n"), 1, out);
+			break;
+		case GRID_OFFSET_DX:
+			fwrite("dx:\n", sizeof("dx:\n"), 1, out);
+			break;
+		case GRID_OFFSET_DZ:
+			fwrite("dz:\n", sizeof("dz:\n"), 1, out);
+			break;
+		default:
+			return;
+		}
+		for (size_t i = 0; i < n; ++i) {
+			for (size_t j = 0; j < m; ++j) {
+				fwrite((double *)((char *)&grid[i * m + j] + offset), sizeof(double), 1, out);
+			}
+			fwrite("\n", sizeof("\n"), 1, out);
 		}
 	}
 
-	log_write(LOG_DEBUG, "Exiting grid_print_all function");
+	//log_write(LOG_DEBUG, "Exiting grid_print_element function");
+}
+
+void grid_print_all(grid_node *grid, size_t n, size_t m, const char *filename, print_option mode)
+{
+	//log_write(LOG_DEBUG, "Entering grid_print_all function");
+
+	if ((mode & GRID_PRINT_AS_TABLE) || (mode & GRID_PRINT_FOR_CONFIG) ||
+			(mode & GRID_PRINT_BINARY)) {
+		for (size_t i = 0; i != GRID_OFFSET_NUM; ++i) {
+			grid_print_elem(grid, n, m, mode, ALL_OFFSETS[i], filename);
+		}
+	}
+
+	//log_write(LOG_DEBUG, "Exiting grid_print_all function");
 }
 
 void grid_clear(void)
 {
 	free(dx);
 	free(dz);
+	if (out == stdout)
+		out = NULL;
+	else if (out)
+		fclose(out);
 }

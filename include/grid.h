@@ -8,6 +8,7 @@
 typedef enum print_option_t {
 	GRID_PRINT_AS_TABLE =	(1 << 0),
 	GRID_PRINT_FOR_CONFIG =	(1 << 1),
+	GRID_PRINT_BINARY =		(1 << 2),
 } print_option;
 
 typedef struct grid_node_t {
@@ -36,8 +37,8 @@ void grid_destroy(grid_node *grid);
 void grid_fill_from_config(grid_node *grid);
 void grid_fill(grid_node *grid, double *a, grid_offset offset);
 
-void grid_print_all(grid_node *grid, size_t n, size_t m, print_option mode);
-void grid_print_elem(grid_node *grid, size_t n, size_t m, print_option mode, grid_offset offset);
+void grid_print_all(grid_node *grid, size_t n, size_t m, const char *filename, print_option mode);
+void grid_print_elem(grid_node *grid, size_t n, size_t m, print_option mode, grid_offset offset, const char *filename);
 
 void grid_clear(void);
 
