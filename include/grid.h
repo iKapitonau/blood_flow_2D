@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-#define EPS	1e-6
+#define EPS_GRID	1e-6
 
 typedef enum print_option_t {
 	GRID_PRINT_AS_TABLE =	(1 << 0),

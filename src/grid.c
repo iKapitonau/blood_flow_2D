@@ -50,7 +50,7 @@ static void grid_generate_dimension(double *a, size_t n, double size, double sig
 	double h = 10.0 / n;
 	size_t idx = 0;
 
-	for (double i = -5; fabs(5 - i) > EPS; i += h, idx++)
+	for (double i = -5; fabs(5 - i) > EPS_GRID; i += h, idx++)
 		a[idx] = f(i + h / 2, sigma) * h;
 
 	normalize(a, n);
