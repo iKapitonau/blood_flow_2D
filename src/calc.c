@@ -1208,4 +1208,5 @@ void calculate(double sigma, double t_beg, double t_end)
 	grid_print_all(grid_cur_layer, n, m, "text", GRID_PRINT_AS_TABLE);
 	grid_destroy(grid_prev);
 	grid_destroy(grid_cur);
+	grid_clear();
 }
