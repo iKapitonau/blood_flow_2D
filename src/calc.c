@@ -62,6 +62,7 @@ static inline double w_0(double t)
 {
 	double f = 0;
 
+	/*
 	if (t < 0.2598 || t >= 0.7523)
 		f = 0.189;
 	else if (t >= 0.2598 && t < 0.458) 
@@ -71,15 +72,14 @@ static inline double w_0(double t)
 	else if (t >= 0.5901 && t < 0.7523)
 		f = -23.7 * pow(t - 0.66, 2) + 0.391;
 	return f;
+	*/
 	
-/*
 	if ((t > 0.213793 && t < 0.5) || t > 0.713793)
 		return 0.1;
 	else if (t <= 0.213793)
-		return (-35 * pow(t - 0.1069, 2) + 0.5) * (x * (2 - x / R) / R);
+		return -35 * pow(t - 0.1069, 2) + 0.5;
 	else
-		return (-35 * pow(t - 0.5 - 0.1069, 2) + 0.5) * (x * (2 - x / R) / R);
-		*/
+		return -35 * pow(t - 0.5 - 0.1069, 2) + 0.5;
 }
 
 static inline double w_0_derivative_t(double t)
