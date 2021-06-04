@@ -3,8 +3,8 @@
  * @author Ilya Kapitonau <ilya.th.kapitonov@gmail.com>
  * @brief Provides blood constants for Carreau fluid model.
  *
- * According to Carreau model, fluid viscosity is calculated by the following
- * equation: mu = mu_inf + (mu_0 - mu_inf) * (1 + (b * shear_rate)^2)^((n - 1) / 2).
+ * According to Carreau-Yasuda model, fluid viscosity is calculated by the following
+ * equation: mu = mu_inf + (mu_0 - mu_inf) * (1 + (b * shear_rate)^A)^((n - 1) / A).
  */
 
 #ifndef BLOOD_CONSTS_H_
@@ -19,6 +19,8 @@ extern const double MU_0;
  * @brief Viscosity at infinite shear rate (Pa.s).
  */
 extern const double MU_INF;
+
+extern const double A;
 
 /**
  * @brief Relaxation time (s).
