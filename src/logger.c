@@ -16,6 +16,20 @@
 #define BUF_SIZE		256		///< Buffer size for log message.
 #define TIMESTAMP_SIZE	25		///< Buffer size for timestamp.
 
+/**
+ * @brief String representation of logging levels
+ */
+static const char *strloglvl[] = {
+	"EMERG",
+	"ALERT",
+	"CRIT",
+	"ERROR",
+	"WARN",
+	"NOTICE",
+	"INFO",
+	"DEBUG"
+};
+
 static FILE *log_file;
 static Log_option log_mode;
 
@@ -56,7 +70,7 @@ void log_write(Log_lvl lvl, const char *fmt, ...)
 
 	char strtime[TIMESTAMP_SIZE];	///< String representation of timestamp.
 
-	size_t time_len = strftime(strtime, TIMESTAMP_SIZE, "%d-%m-%y %r", timestamp);
+	strftime(strtime, TIMESTAMP_SIZE, "%d-%m-%y %r", timestamp);
 
 	char buf[BUF_SIZE];
 	sprintf(buf, "[%s][%s]: %s\n", strtime, strloglvl[lvl], fmt);

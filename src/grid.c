@@ -60,26 +60,6 @@ static void grid_generate_dimension(double *a, size_t n, double size, double sig
 	//log_write(LOG_DEBUG, "Exiting grid_generate_dimension function");
 }
 
-static void print_gnuplot(double *a, size_t n, double *b, size_t m)
-{
-	//log_write(LOG_DEBUG, "Entering print_gnuplot function");
-	double sum = 0;
-	for (size_t i = 0; i < n; ++i) {
-		printf("set arrow from 0,%.18lf to %lf,%.18lf nohead\n", sum, L, sum);
-		sum += a[i];
-	}
-	printf("set arrow from 0,%.18lf to %lf,%.18lf nohead\n", sum, L, sum);
-
-	sum = 0;
-	for (size_t i = 0; i < m; ++i) {
-		printf("set arrow from %.18lf,0 to %.18lf,%lf nohead\n", sum, sum, H);
-		sum += b[i];
-	}
-	printf("set arrow from %.18lf,0 to %.18lf,%lf nohead\n", sum, sum, H);
-	printf("plot 0\npause -1");
-	//log_write(LOG_DEBUG, "Exiting print_gnuplot function");
-}
-
 grid_node *grid_generate(double sigma_, size_t *n, size_t *m)
 {
 	//log_write(LOG_DEBUG, "Entering grid_generate function");
@@ -123,8 +103,6 @@ grid_node *grid_generate(double sigma_, size_t *n, size_t *m)
 		}
 	}
 	log_write(LOG_INFO, "Allocated successfully!");
-
-	//print_gnuplot(z, N, x, M);
 
 	//log_write(LOG_DEBUG, "Exiting grid_generate function");
 

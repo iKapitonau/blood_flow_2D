@@ -22,20 +22,6 @@ typedef enum Log_lvl_t {
 } Log_lvl;
 
 /**
- * @brief String representation of logging levels
- */
-static const char *strloglvl[] = {
-	"EMERG",
-	"ALERT",
-	"CRIT",
-	"ERROR",
-	"WARN",
-	"NOTICE",
-	"INFO",
-	"DEBUG"
-};
-
-/**
  * @brief Logger options enum
  *
  * Logger options specify where logger will write:
