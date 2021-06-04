@@ -163,8 +163,6 @@ void grid_fill_from_config(grid_node *grid)
 	get_velocity_z(&nodes_number, &w);	
 	get_pressure(&nodes_number, &p);
 
-	fprintf(stderr, "%zu\n", nodes_number);
-
 	for (size_t i = 0; i < nodes_number; ++i) {
 		grid[i].u = u[i];
 		grid[i].w = w[i];
