@@ -1,6 +1,6 @@
 CC ?= gcc
-LDFLAGS := $(LDFLAGS) -lconfig -lm
-CFLAGS := $(CFLAGS) -Wall -Wextra -pedantic -Iinclude/ -g
+LDFLAGS := $(LDFLAGS) -lconfig -lm -fopenmp
+CFLAGS := $(CFLAGS) -Wall -Wextra -pedantic -Iinclude/  -fopenmp -O3
 
 srcs = $(wildcard src/*.c)
 objs = $(srcs:.c=.o)
