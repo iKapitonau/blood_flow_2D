@@ -3,19 +3,50 @@
 #include "calc.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <omp.h>
 
-int main(void)
-{
-	//log_open(NULL, LOG_STDERR);
+static const char *std_config_filename = "config_example";
 
-	read_config("config.ex1");
+void print_usage(void)
+{
+	fprintf(stderr, "Usage: blood_flow_2d [config_filename]\n");
+}
+
+int main(int argc, char *argv[])
+{
+	static const char *config_filename;
+	if (argc > 2) {
+		print_usage();
+		return EXIT_SUCCESS;
+	} else if (argc == 1) {
+		config_filename = std_config_filename;
+	} else {
+		config_filename = argv[1];
+	}
+
+	log_open(NULL, LOG_STDERR);
+
+	int ret = read_config(config_filename);
+	if (ret != EXIT_SUCCESS) {
+		log_write(LOG_CRIT, "Error while reading config file '%s'. Exiting...", config_filename);
+		exit(EXIT_FAILURE);
+	}
+
+	/* default params */
+	double sigma = 5;
+	double t_from = 0;
+	double t_to = 1;
+
+	log_write(LOG_INFO, "Calculating with SIGMA = %lf, TIME_RANGE = [%lf, %lf]", sigma, t_from, t_to);
 
 	double t1 = omp_get_wtime();
-	calculate(5, 0, 1);
+	calculate(sigma, t_from, t_to);
 	double t2 = omp_get_wtime();
 
-	fprintf(stderr, "TOTAL=%lf\n", t2 - t1);
+	log_write(LOG_INFO, "TIME=%lf", t2 - t1);
 
 	clear_config();
+
+	return EXIT_SUCCESS;
 }

@@ -1,0 +1,12 @@
+vessel_params : 
+{
+  vessel_size_x = 0.0064;
+  vessel_size_z = 0.02;
+  blood_density = 1060.0;
+};
+grid_params : 
+{
+  rows_number = 20;
+  columns_number = 10;
+  delta_t = 0.00001;
+};
