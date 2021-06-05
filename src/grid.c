@@ -33,7 +33,6 @@ static inline double f(double x, double sigma)
 
 static void normalize(double *a, size_t n)
 {
-	//log_write(LOG_DEBUG, "Entering normalize function");
 	double sum = 0;
 	for (size_t i = 0; i < n; ++i)
 		sum += a[i];
@@ -41,12 +40,10 @@ static void normalize(double *a, size_t n)
 	sum = 1 / sum;
 	for (size_t i = 0; i < n; ++i)
 		a[i] *= sum;
-	//log_write(LOG_DEBUG, "Exiting normalize function");
 }
 
 static void grid_generate_dimension(double *a, size_t n, double size, double sigma)
 {
-	//log_write(LOG_DEBUG, "Entering grid_generate_dimension function");
 	double h = 10.0 / n;
 	size_t idx = 0;
 
@@ -57,13 +54,10 @@ static void grid_generate_dimension(double *a, size_t n, double size, double sig
 
 	for (size_t i = 0; i < n; ++i)
 		a[i] = a[i] * size;
-	//log_write(LOG_DEBUG, "Exiting grid_generate_dimension function");
 }
 
 grid_node *grid_generate(double sigma_, size_t *n, size_t *m)
 {
-	//log_write(LOG_DEBUG, "Entering grid_generate function");
-
 	static bool first_time_in_function = true;
 
 	if (first_time_in_function) {
@@ -92,7 +86,6 @@ grid_node *grid_generate(double sigma_, size_t *n, size_t *m)
 		log_write(LOG_INFO, "Generated successfully!");
 	}
 
-	log_write(LOG_INFO, "Allocating grid...");
 	grid_node *grid = calloc((N + 1) * (M + 1), sizeof(grid_node));
 	*n = N + 1;
 	*m = M + 1;
@@ -102,9 +95,6 @@ grid_node *grid_generate(double sigma_, size_t *n, size_t *m)
 			grid[i * *m + j].dz = dz[j];
 		}
 	}
-	log_write(LOG_INFO, "Allocated successfully!");
-
-	//log_write(LOG_DEBUG, "Exiting grid_generate function");
 
 	return grid;
 }
@@ -122,15 +112,12 @@ void grid_copy(grid_node *src, grid_node **dst)
 
 void grid_destroy(grid_node *grid)
 {
-	//log_write(LOG_DEBUG, "Entering grid_destroy function");
 	if (grid)
 		free(grid);
-	//log_write(LOG_DEBUG, "Exiting grid_destroy function");
 }
 
 void grid_fill_from_config(grid_node *grid)
 {
-	//log_write(LOG_DEBUG, "Entering grid_fill_from_config function");
 	log_write(LOG_INFO, "Initializing grid...");
 	size_t nodes_number;
 	double *u;
@@ -153,23 +140,18 @@ void grid_fill_from_config(grid_node *grid)
 	free(p);
 	
 	log_write(LOG_INFO, "Initialized successfully!");
-	//log_write(LOG_DEBUG, "Exiting grid_fill_from_config function");
 }
 
 void grid_fill(grid_node *grid, double *a, grid_offset offset)
 {
-	//log_write(LOG_DEBUG, "Entering grid_fill function");
 	size_t nodes_number = (N + 1) * (M + 1);
 
 	for (size_t i = 0; i < nodes_number; ++i)
 		*(double *)((char *)&grid[i] + offset) = a[i];
-
-	//log_write(LOG_DEBUG, "Exiting grid_fill function");
 }
 
 void grid_print_elem(grid_node *grid, size_t n, size_t m, print_option mode, grid_offset offset, const char *filename)
 {
-	//log_write(LOG_DEBUG, "Entering grid_print_element function");
 	if (out == NULL) {
 		if (filename != NULL) 
 			out = fopen(filename, ((mode & GRID_PRINT_BINARY) ? "wb" : "w"));
@@ -264,22 +246,16 @@ void grid_print_elem(grid_node *grid, size_t n, size_t m, print_option mode, gri
 			fwrite("\n", sizeof("\n"), 1, out);
 		}
 	}
-
-	//log_write(LOG_DEBUG, "Exiting grid_print_element function");
 }
 
 void grid_print_all(grid_node *grid, size_t n, size_t m, const char *filename, print_option mode)
 {
-	//log_write(LOG_DEBUG, "Entering grid_print_all function");
-
 	if ((mode & GRID_PRINT_AS_TABLE) || (mode & GRID_PRINT_FOR_CONFIG) ||
 			(mode & GRID_PRINT_BINARY)) {
 		for (size_t i = 0; i != GRID_OFFSET_NUM; ++i) {
 			grid_print_elem(grid, n, m, mode, ALL_OFFSETS[i], filename);
 		}
 	}
-
-	//log_write(LOG_DEBUG, "Exiting grid_print_all function");
 }
 
 void grid_clear(void)
