@@ -12,6 +12,7 @@
 #include <string.h>
 
 #define EPS	1e-9
+#define MAX_ITER	5000
 
 void tma(tma_info *ti)
 {
@@ -1177,19 +1178,16 @@ void calculate(double sigma, double t_beg, double t_end)
 		calculate_boundary_conditions(grid_prev, n, m, cur_layer * delta_t);
 		calculate_boundary_conditions(grid_cur_layer, n, m, cur_layer * delta_t);
 
-		fprintf(stderr, "LAYER #%zu\n", cur_layer);
 		grid_print_all(grid_cur_layer, n, m, "text", GRID_PRINT_AS_TABLE);
+
+		log_write(LOG_INFO, "Calculating layer #%zu", cur_layer + 1);
 
 		size_t iter = 0;
 		while (true) {
-			fprintf(stderr, "ITER #%zu\n", iter);
 			calculate_mu(grid_prev, n, m);
 			calculate_velocity_z(grid_prev, grid_cur, grid_cur_layer, n, m);
 			calculate_boundary_conditions(grid_cur, n, m, cur_layer * delta_t);
-			calculate_boundary_conditions(grid_prev, n, m, cur_layer * delta_t);
 			calculate_velocity_x(grid_prev, grid_cur, grid_cur_layer, n, m);
-			//calculate_boundary_conditions(grid_cur, n, m, cur_layer * delta_t);
-			//calculate_boundary_conditions(grid_prev, n, m, cur_layer * delta_t);
 			if (check_convergence(grid_prev, grid_cur, n, m, EPS)) {
 				grid_copy(grid_cur, &grid_next_layer);
 				break;
@@ -1199,12 +1197,18 @@ void calculate(double sigma, double t_beg, double t_end)
 				grid_cur = tmp;
 			}
 			++iter;
+			if (iter >= MAX_ITER) {
+				log_write(LOG_ALERT, "Iterative process diverges (took >MAX_ITER iterations)."
+						"Exiting program...");
+				exit(1);
+			}
 		}
+		log_write(LOG_INFO, "Took %zu iterations", iter);
+
 		grid_node *tmp = grid_cur_layer;
 		grid_cur_layer = grid_next_layer;
 		grid_next_layer = tmp;
 	}
-	fprintf(stderr, "LAYER #last\n");
 	grid_print_all(grid_cur_layer, n, m, "text", GRID_PRINT_AS_TABLE);
 	grid_destroy(grid_prev);
 	grid_destroy(grid_cur);
