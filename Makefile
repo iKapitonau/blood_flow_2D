@@ -1,15 +1,25 @@
 CC ?= gcc
 LDFLAGS := $(LDFLAGS) -lconfig -lm -fopenmp
-CFLAGS := $(CFLAGS) -Wall -Wextra -pedantic -Iinclude/  -fopenmp -O3
+CFLAGS := $(CFLAGS) -Wall -Wextra -pedantic -Iinclude/
 
+exec = blood_flow_2d
 srcs = $(wildcard src/*.c)
 objs = $(srcs:.c=.o)
 deps = $(srcs:.c=.dep)
 
-.PHONY: all clean
+.PHONY: clean debug release parallel
 
-all: $(objs)
-	$(CC) $(objs) $(LDFLAGS) -o all
+release: CFLAGS += -O3
+release: $(exec)
+
+debug: CFLAGS += -g
+debug: $(exec)
+
+parallel: CFLAGS += -fopenmp -DWITH_OPENMP_
+parallel: release
+
+$(exec): $(objs)
+	$(CC) $(objs) $(LDFLAGS) -o $@
 
 ifneq ($(MAKECMDGOALS), clean)
 -include $(deps)
@@ -19,4 +29,4 @@ endif
 	$(CC) $(CFLAGS) $< -MM > $@
 
 clean:
-	-rm -f $(objs) $(deps)
+	-rm -f $(objs) $(deps) $(exec)
